@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Image to Notes</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<h1>Image to Study Notes</h1>
+
+<div id="dropBox" class="drop-box">
+<p>
+Drag & drop images here or
+</p>
+<input type="file" id="fileElem" multiple accept="image/*" />
+<label for="fileElem" class="select-btn">Select Images</label>
+</div>
+
+<div id="preview" class="preview"></div>
+
+<button id="extractBtn">Extract & Generate Notes</button>
+ <div id="progressContainer" class="progress-container" style="display: none;">
+  <div id="progressBar" class="progress-bar"></div>
+ </div>
+ 
+<h2>Notes</h2>
+<textarea id="notesOutput" placeholder="Generated notes will appear here..."></textarea>
+<br />
+<button id="downloadBtn">Download Notes as PDF</button>
+
+<script src="script.js"></script>
+</body>
+</html>
