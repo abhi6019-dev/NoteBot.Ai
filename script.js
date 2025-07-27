@@ -87,7 +87,7 @@ extractBtn.addEventListener("click", async () => {
     const formData = new FormData();
     formData.append("image", image);
 
-    const response = await fetch("https://replit.com/@abhi6019/NoteBotai-Backend", {
+    const response = await fetch("https://329b4577-7132-4a08-a231-fc5f12e57979-00-3ofm1xf00vxjm.pike.replit.dev/", {
       method: "POST",
       body: formData,
     });
@@ -98,7 +98,7 @@ extractBtn.addEventListener("click", async () => {
     }
   }
 
-  const notesRes = await fetch("https://replit.com/@abhi6019/NoteBotai-Backend", {
+  const notesRes = await fetch("https://329b4577-7132-4a08-a231-fc5f12e57979-00-3ofm1xf00vxjm.pike.replit.dev/", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -113,7 +113,7 @@ extractBtn.addEventListener("click", async () => {
 });
 
 downloadBtn.addEventListener("click", async () => {
-  const response = await fetch("https://replit.com/@abhi6019/NoteBotai-Backend", {
+  const response = await fetch("https://329b4577-7132-4a08-a231-fc5f12e57979-00-3ofm1xf00vxjm.pike.replit.dev/", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -146,7 +146,7 @@ async function extractAndGenerate() {
 
     try {
       updateProgress(20 + i * (60 / imageFiles.length)); // dynamic progress
-      const response = await fetch("https://replit.com/@abhi6019/NoteBotai-Backend", {
+      const response = await fetch("https://329b4577-7132-4a08-a231-fc5f12e57979-00-3ofm1xf00vxjm.pike.replit.dev/", {
         method: "POST",
         body: formData,
       });
