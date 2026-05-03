@@ -1,185 +1,100 @@
-
-const BACKEND = "https://notebot-ai.onrender.com";
+const BACKEND = "https://notebot-ai.onrender.com/";
 
 let images = [];
 
-/* =========================
-   DOM ELEMENTS
-========================= */
-const fileInput = document.getElementById("fileInput");
-const preview = document.getElementById("preview");
-const output = document.getElementById("output");
-const loading = document.getElementById("loading");
-
-/* =========================
-   FILE HANDLING
-========================= */
-fileInput.addEventListener("change", (e) => {
-  handleFiles(e.target.files);
+document.getElementById("fileInput").addEventListener("change", (e) => {
+  images = [...e.target.files];
+  render();
 });
 
-function handleFiles(files) {
-  [...files].forEach((file) => {
-    if (!file.type.startsWith("image/")) return;
+function render() {
+  const preview = document.getElementById("preview");
+  preview.innerHTML = "";
 
-    images.push(file);
-
+  images.forEach(file => {
     const reader = new FileReader();
 
     reader.onload = () => {
-      const card = document.createElement("div");
-      card.className = "img-card";
-
       const img = document.createElement("img");
       img.src = reader.result;
-
-      const btn = document.createElement("button");
-      btn.className = "remove";
-      btn.innerText = "×";
-
-      btn.onclick = () => {
-        card.remove();
-        images = images.filter((i) => i !== file);
-      };
-
-      card.appendChild(img);
-      card.appendChild(btn);
-      preview.appendChild(card);
+      preview.appendChild(img);
     };
 
     reader.readAsDataURL(file);
   });
 }
 
-/* =========================
-   LOADING CONTROL
-========================= */
-function showLoading(text = "Processing AI...") {
-  loading.innerText = text;
-  loading.classList.remove("hidden");
-}
-
-function hideLoading() {
-  loading.classList.add("hidden");
+function showLoader(state) {
+  document.getElementById("loader").classList.toggle("hidden", !state);
 }
 
 /* =========================
-   GENERATE NOTES (OCR → AI)
+   NOTES PIPELINE
 ========================= */
 async function generateNotes() {
-  if (!images.length) {
-    alert("Please upload images first");
-    return;
-  }
+  showLoader(true);
 
   try {
-    showLoading("Reading images...");
+    let text = "";
 
-    let extractedText = "";
-
-    for (let i = 0; i < images.length; i++) {
+    for (let img of images) {
       const fd = new FormData();
-      fd.append("image", images[i]);
+      fd.append("image", img);
 
-      const res = await fetch(`${BACKEND}/ocr`, {
+      const res = await fetch(BACKEND + "/ocr", {
         method: "POST",
         body: fd
       });
 
       const data = await res.json();
-      extractedText += (data.text || "") + "\n";
+      text += data.data.text + "\n";
     }
 
-    showLoading("Generating AI notes...");
-
-    const res2 = await fetch(`${BACKEND}/notes`, {
+    const res2 = await fetch(BACKEND + "/notes", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ text: extractedText })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text })
     });
 
     const data2 = await res2.json();
+    document.getElementById("output").value = data2.data.notes;
 
-    output.value = data2.notes || "No notes generated.";
-
-  } catch (err) {
-    console.error("Generate Notes Error:", err);
-    output.value = "Error generating notes.";
   } finally {
-    hideLoading();
+    showLoader(false);
   }
 }
 
 /* =========================
-   DIAGRAM EXPLANATION
+   DIAGRAM
 ========================= */
 async function explainDiagram() {
-  if (!output.value.trim()) {
-    alert("No content to analyze");
-    return;
-  }
+  const text = document.getElementById("output").value;
 
-  try {
-    showLoading("Analyzing diagram...");
+  const res = await fetch(BACKEND + "/diagram", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text })
+  });
 
-    const res = await fetch(`${BACKEND}/diagram`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ text: output.value })
-    });
-
-    const data = await res.json();
-
-    output.value = data.explanation || "No explanation generated.";
-
-  } catch (err) {
-    console.error("Diagram Error:", err);
-    output.value = "Failed to explain diagram.";
-  } finally {
-    hideLoading();
-  }
+  const data = await res.json();
+  document.getElementById("output").value = data.data.explanation;
 }
 
 /* =========================
-   PDF DOWNLOAD
+   PDF
 ========================= */
 async function downloadPDF() {
-  try {
-    showLoading("Creating PDF...");
+  const res = await fetch(BACKEND + "/pdf", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ notes: document.getElementById("output").value })
+  });
 
-    const res = await fetch(`${BACKEND}/pdf`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ notes: output.value })
-    });
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
 
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "notebot-notes.pdf";
-    a.click();
-
-    URL.revokeObjectURL(url);
-
-  } catch (err) {
-    console.error("PDF Error:", err);
-    alert("PDF generation failed");
-  } finally {
-    hideLoading();
-  }
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "notebot.pdf";
+  a.click();
 }
-
-/* =========================
-   GLOBAL EXPORT (CRITICAL FIX)
-========================= */
-window.generateNotes = generateNotes;
-window.explainDiagram = explainDiagram;
-window.downloadPDF = downloadPDF;
