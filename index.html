@@ -3,30 +3,23 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Notebot AI Pro</title>
+<title>Notebot AI</title>
 <link rel="stylesheet" href="style.css"/>
 </head>
-
 <body>
 
-<div class="container">
+<div class="app">
 
-  <div class="header">
-    <h1>🧠 Notebot AI</h1>
-    <p>Turn images into perfect study notes</p>
-  </div>
+  <h1>🧠 Notebot AI</h1>
 
-  <label class="upload-box">
-    <input type="file" id="fileInput" multiple accept="image/*"/>
-    <span>Tap or Drag Images Here</span>
-  </label>
+  <input type="file" id="fileInput" multiple accept="image/*"/>
 
   <div id="preview"></div>
 
-  <div class="actions">
-    <button onclick="generateNotes()">✨ Generate Notes</button>
-    <button onclick="explainDiagram()">🧩 Explain</button>
-    <button onclick="downloadPDF()">⬇ Export PDF</button>
+  <div class="buttons">
+    <button onclick="generateNotes()">Generate Notes</button>
+    <button onclick="explainDiagram()">Explain Diagram</button>
+    <button onclick="downloadPDF()">Download PDF</button>
   </div>
 
   <div id="loader" class="hidden">Processing AI...</div>
