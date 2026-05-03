@@ -1,106 +1,104 @@
 
-const BACKEND = "https://your-backend.onrender.com";
+
+const BACKEND = "https://notebot-ai.onrender.com";
 
 let files = [];
-let chatBox = document.getElementById("chat");
-let previewBar = document.getElementById("previewBar");
+let chat = document.getElementById("chat");
 
 /* =========================
    FILE HANDLING (FIXED)
 ========================= */
 document.getElementById("fileInput").addEventListener("change", (e) => {
-  const newFiles = Array.from(e.target.files);
-  files = files.concat(newFiles);
-  renderPreviews();
+  files = Array.from(e.target.files);
 });
 
 /* =========================
-   RENDER PREVIEWS
+   CREATE MESSAGE UI
 ========================= */
-function renderPreviews() {
-  previewBar.innerHTML = "";
-
-  files.forEach((file, index) => {
-    const div = document.createElement("div");
-    div.className = "preview-item";
-
-    const img = document.createElement("img");
-    img.src = URL.createObjectURL(file);
-
-    const btn = document.createElement("button");
-    btn.innerText = "×";
-    btn.className = "remove";
-    btn.onclick = () => {
-      files.splice(index, 1);
-      renderPreviews();
-    };
-
-    div.appendChild(img);
-    div.appendChild(btn);
-    previewBar.appendChild(div);
-  });
-}
-
-/* =========================
-   CHAT UI
-========================= */
-function addMessage(text, type) {
+function addMessage(role, text, attachments = []) {
   const div = document.createElement("div");
-  div.className = `msg ${type}`;
+  div.className = `msg ${role}`;
+
   div.innerText = text;
-  chatBox.appendChild(div);
-  chatBox.scrollTop = chatBox.scrollHeight;
+
+  if (attachments.length > 0) {
+    const att = document.createElement("div");
+    att.className = "attachments";
+
+    attachments.forEach(file => {
+      const img = document.createElement("img");
+      img.src = URL.createObjectURL(file);
+      att.appendChild(img);
+    });
+
+    div.appendChild(att);
+  }
+
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+
+  return div;
 }
 
 /* =========================
-   SEND MESSAGE
+   STREAMING AI RESPONSE
+========================= */
+async function streamAI(payload, aiBubble) {
+
+  const res = await fetch(`${BACKEND}/chat-stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+
+  let text = "";
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+
+    text += decoder.decode(value);
+    aiBubble.innerText = text;
+  }
+}
+
+/* =========================
+   SEND MESSAGE (FIXED FILE ISSUE)
 ========================= */
 async function sendMessage() {
   const input = document.getElementById("textInput");
   const text = input.value;
 
-  if (!text && files.length === 0) return;
+  addMessage("user", text, files);
 
-  addMessage(text || "📎 Image input", "user");
+  const formData = new FormData();
+  formData.append("text", text);
+
+  files.forEach(f => formData.append("files", f));
+
   input.value = "";
 
-  let extractedText = "";
+  const aiBubble = addMessage("ai", "Thinking...");
 
-  /* OCR STEP (optional backend) */
-  for (let f of files) {
-    const fd = new FormData();
-    fd.append("image", f);
-
-    const res = await fetch(`${BACKEND}/ocr`, {
-      method: "POST",
-      body: fd
-    });
-
-    const data = await res.json();
-    extractedText += data.text + "\n";
-  }
-
-  files = [];
-  renderPreviews();
-
-  /* AI STEP */
-  const res2 = await fetch(`${BACKEND}/chat`, {
+  const res = await fetch(`${BACKEND}/chat`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      text: text + "\n" + extractedText
-    })
+    body: formData
   });
 
-  const data2 = await res2.json();
-  addMessage(data2.reply, "ai");
+  const data = await res.json();
+
+  aiBubble.innerText = data.reply;
+
+  files = [];
 }
 
 /* =========================
    NEW CHAT
 ========================= */
 function newChat() {
-  chatBox.innerHTML = "";
+  chat.innerHTML = "";
   files = [];
-  renderPreviews();
 }
