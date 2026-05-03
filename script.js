@@ -1,5 +1,5 @@
 
-const BACKEND = "https://YOUR-RENDER-URL.onrender.com";
+const BACKEND = "https://notebot-ai.onrender.com";
 
 const fileInput = document.getElementById("fileInput");
 const preview = document.getElementById("preview");
