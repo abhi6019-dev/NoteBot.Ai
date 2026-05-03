@@ -1,32 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
+<meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Notebot AI</title>
 <link rel="stylesheet" href="style.css"/>
 </head>
+
 <body>
 
-<div class="app">
+<!-- TOP NAV -->
+<header class="nav">
+  <div class="logo">🧠 Notebot</div>
+  <button class="upgrade">Upgrade Pro</button>
+</header>
 
-  <h1>🧠 Notebot AI</h1>
+<!-- MAIN APP -->
+<main class="container">
 
-  <input type="file" id="fileInput" multiple accept="image/*"/>
+  <!-- HERO CARD -->
+  <section class="card hero">
+    <h1>Turn images into <span>smart notes</span></h1>
+    <p>Upload your class notes, boards, or textbooks and get AI-powered revision notes instantly.</p>
+  </section>
 
-  <div id="preview"></div>
+  <!-- UPLOAD AREA -->
+  <section class="card upload">
+    <input type="file" id="fileInput" multiple accept="image/*"/>
 
-  <div class="buttons">
-    <button onclick="generateNotes()">Generate Notes</button>
-    <button onclick="explainDiagram()">Explain Diagram</button>
-    <button onclick="downloadPDF()">Download PDF</button>
-  </div>
+    <div id="dropZone">
+      <p>📤 Drag & drop images here</p>
+      <small>or click to upload</small>
+    </div>
 
-  <div id="loader" class="hidden">Processing AI...</div>
+    <div id="preview"></div>
 
-  <textarea id="output" placeholder="Your AI notes will appear here..."></textarea>
+    <button onclick="generateNotes()" class="primary">
+      Generate Notes ✨
+    </button>
+  </section>
 
-</div>
+  <!-- OUTPUT -->
+  <section class="card output">
+    <div class="output-header">
+      <h2>Generated Notes</h2>
+      <button onclick="copyText()">Copy</button>
+    </div>
+
+    <textarea id="output" placeholder="Your AI notes will appear here..."></textarea>
+  </section>
+
+</main>
 
 <script src="script.js"></script>
 </body>
