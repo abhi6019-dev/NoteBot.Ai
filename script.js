@@ -1,64 +1,106 @@
-const BACKEND = "https://notebot-ai.onrender.com";
+const BACKEND = "https://YOUR-RENDER-URL.onrender.com";
+
+const fileInput = document.getElementById("fileInput");
+const preview = document.getElementById("preview");
+const output = document.getElementById("output");
 
 let images = [];
 
-document.getElementById("fileInput").addEventListener("change", e => {
-  images = [...e.target.files];
+/* ---------------- FILE HANDLING (FIXED) ---------------- */
+fileInput.addEventListener("change", (e) => {
+  handleFiles(e.target.files);
 });
 
+function handleFiles(files) {
+  [...files].forEach(file => {
+    if (!file.type.startsWith("image/")) return;
+
+    images.push(file);
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const div = document.createElement("div");
+      div.className = "img-card";
+
+      const img = document.createElement("img");
+      img.src = reader.result;
+
+      const btn = document.createElement("button");
+      btn.className = "remove";
+      btn.innerText = "×";
+
+      btn.onclick = () => {
+        div.remove();
+        images = images.filter(i => i !== file);
+      };
+
+      div.appendChild(img);
+      div.appendChild(btn);
+      preview.appendChild(div);
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ---------------- OCR + NOTES ---------------- */
 async function generateNotes() {
+  if (!images.length) {
+    alert("Upload images first");
+    return;
+  }
+
   let text = "";
 
   for (let img of images) {
-    let fd = new FormData();
+    const fd = new FormData();
     fd.append("image", img);
 
-    let res = await fetch(BACKEND + "/ocr", {
+    const res = await fetch(BACKEND + "/ocr", {
       method: "POST",
       body: fd
     });
 
-    let data = await res.json();
+    const data = await res.json();
     text += data.text + "\n";
   }
 
-  let res2 = await fetch(BACKEND + "/notes", {
+  const res2 = await fetch(BACKEND + "/notes", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text })
   });
 
-  let data2 = await res2.json();
-  document.getElementById("output").value = data2.notes;
+  const data2 = await res2.json();
+  output.value = data2.notes;
 }
 
+/* ---------------- DIAGRAM ---------------- */
 async function explainDiagram() {
-  let text = document.getElementById("output").value;
-
-  let res = await fetch(BACKEND + "/diagram", {
+  const res = await fetch(BACKEND + "/diagram", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text })
+    body: JSON.stringify({ text: output.value })
   });
 
-  let data = await res.json();
-  document.getElementById("output").value = data.explanation;
+  const data = await res.json();
+  output.value = data.explanation;
 }
 
+/* ---------------- PDF ---------------- */
 async function downloadPDF() {
-  let res = await fetch(BACKEND + "/pdf", {
+  const res = await fetch(BACKEND + "/pdf", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ notes: document.getElementById("output").value })
+    body: JSON.stringify({ notes: output.value })
   });
 
-  let blob = await res.blob();
-  let url = URL.createObjectURL(blob);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
 
-  let a = document.createElement("a");
+  const a = document.createElement("a");
   a.href = url;
   a.download = "notes.pdf";
   a.click();
-}
-  hideProgress();
 }
