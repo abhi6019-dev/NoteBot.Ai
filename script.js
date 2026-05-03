@@ -1,5 +1,5 @@
 
-const BACKEND = "https://your-backend.onrender.com";
+const BACKEND = "https://notebot-ai.onrender.com";
 
 const chat = document.getElementById("chat");
 
