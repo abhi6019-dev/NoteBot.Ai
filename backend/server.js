@@ -14,14 +14,18 @@ const openai = new OpenAI({
 app.use(cors({ origin: "*" }));
 app.use(express.json());
 
-/* ---------------- ROOT ---------------- */
+/* ---------------- HEALTH CHECK ---------------- */
 app.get("/", (req, res) => {
   res.send("Notebot AI Backend Running 🚀");
 });
 
-/* ---------------- OCR (VISION AI) ---------------- */
+/* ---------------- OCR (VISION) ---------------- */
 app.post("/ocr", upload.single("image"), async (req, res) => {
   try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No image uploaded" });
+    }
+
     const base64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
 
     const response = await openai.chat.completions.create({
@@ -30,74 +34,88 @@ app.post("/ocr", upload.single("image"), async (req, res) => {
         {
           role: "user",
           content: [
-            { type: "text", text: "Extract all text from this image." },
+            { type: "text", text: "Extract all text clearly from this image." },
             { type: "image_url", image_url: { url: base64 } }
           ]
         }
       ]
     });
 
-    res.json({ text: response.choices[0].message.content });
+    res.json({
+      text: response.choices?.[0]?.message?.content || ""
+    });
 
   } catch (err) {
-    res.status(500).json({ error: "OCR failed" });
+    console.error("OCR ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
 /* ---------------- NOTES ---------------- */
 app.post("/notes", async (req, res) => {
   try {
-    const { text } = req.body;
+    const text = req.body.text;
+
+    if (!text || text.trim().length === 0) {
+      return res.status(400).json({ error: "No text provided" });
+    }
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: `
-Convert text into:
-- Structured study notes
-- Headings
-- Bullet points
-- Exam revision format
-          `
+          content:
+            "Convert text into structured exam-ready notes with headings, bullet points, and simple explanations."
         },
-        { role: "user", content: text }
+        {
+          role: "user",
+          content: text
+        }
       ]
     });
 
-    res.json({ notes: response.choices[0].message.content });
+    res.json({
+      notes: response.choices?.[0]?.message?.content || ""
+    });
 
   } catch (err) {
-    res.status(500).json({ error: "Notes failed" });
+    console.error("NOTES ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
-/* ---------------- DIAGRAM EXPLANATION ---------------- */
+/* ---------------- DIAGRAM ---------------- */
 app.post("/diagram", async (req, res) => {
   try {
-    const { text } = req.body;
+    const text = req.body.text;
+
+    if (!text) {
+      return res.status(400).json({ error: "No text provided" });
+    }
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: `
-Explain diagrams clearly:
-- What it shows
-- Labels meaning
-- Step-by-step explanation
-          `
+          content:
+            "Explain diagrams clearly: components, flow, and meaning step-by-step."
         },
-        { role: "user", content: text }
+        {
+          role: "user",
+          content: text
+        }
       ]
     });
 
-    res.json({ explanation: response.choices[0].message.content });
+    res.json({
+      explanation: response.choices?.[0]?.message?.content || ""
+    });
 
   } catch (err) {
-    res.status(500).json({ error: "Diagram failed" });
+    console.error("DIAGRAM ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -110,24 +128,18 @@ app.post("/pdf", (req, res) => {
 
   doc.pipe(res);
 
-  const text = req.body.notes || "";
+  const text = req.body.notes || "No content";
 
-  doc.fontSize(20).text("📒 Notebot AI Notes", { align: "center" });
+  doc.fontSize(18).text("Notebot AI Notes", { align: "center" });
   doc.moveDown();
 
   text.split("\n").forEach(line => {
-    if (line.startsWith("#")) {
-      doc.fontSize(16).text(line.replace("#", ""), { underline: true });
-    } else if (line.startsWith("-")) {
-      doc.fontSize(12).text("• " + line.replace("-", ""));
-    } else {
-      doc.fontSize(12).text(line);
-    }
-    doc.moveDown(0.3);
+    doc.fontSize(12).text(line);
   });
 
   doc.end();
 });
 
+/* ---------------- START ---------------- */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log("Server running on", PORT));
