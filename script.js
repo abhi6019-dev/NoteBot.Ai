@@ -1,98 +1,45 @@
-const BACKEND = "https://notebot-ai.onrender.com";
 
-let images = [];
+const BACKEND = "https://your-backend.onrender.com";
 
-document.getElementById("fileInput").addEventListener("change", (e) => {
-  images = [...e.target.files];
-  render();
-});
+const chat = document.getElementById("chat");
 
-const BACKEND = "https://notebot-ai.onrender.com"; // NO trailing slash
-
-let images = [];
-
-document.getElementById("fileInput").addEventListener("change", (e) => {
-  images = [...e.target.files];
-  render();
-});
-
-function render() {
-  const preview = document.getElementById("preview");
-  preview.innerHTML = "";
-
-  images.forEach(file => {
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      const img = document.createElement("img");
-      img.src = reader.result;
-      preview.appendChild(img);
-    };
-
-    reader.readAsDataURL(file);
-  });
+/* =========================
+   CHAT RENDER
+========================= */
+function addMessage(text, type) {
+  const div = document.createElement("div");
+  div.classList.add("msg", type);
+  div.innerText = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
 }
 
 /* =========================
-   GENERATE NOTES
+   SEND MESSAGE
 ========================= */
-async function generateNotes() {
-  let text = "";
+async function sendMessage() {
+  const input = document.getElementById("textInput");
+  const text = input.value;
 
-  for (let img of images) {
-    const fd = new FormData();
-    fd.append("image", img);
+  if (!text) return;
 
-    const res = await fetch(`${BACKEND}/ocr`, {
-      method: "POST",
-      body: fd
-    });
+  addMessage(text, "user");
+  input.value = "";
 
-    const data = await res.json();
-    text += data.text + "\n";
-  }
-
-  const res2 = await fetch(`${BACKEND}/notes`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text })
-  });
-
-  const data2 = await res2.json();
-  document.getElementById("output").value = data2.notes || "No notes generated";
-}
-
-/* =========================
-   DIAGRAM
-========================= */
-async function explainDiagram() {
-  const text = document.getElementById("output").value;
-
-  const res = await fetch(`${BACKEND}/diagram`, {
+  const res = await fetch(`${BACKEND}/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text })
   });
 
   const data = await res.json();
-  document.getElementById("output").value = data.explanation || "No explanation";
+
+  addMessage(data.reply, "ai");
 }
 
 /* =========================
-   PDF
+   NEW CHAT
 ========================= */
-async function downloadPDF() {
-  const res = await fetch(`${BACKEND}/pdf`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ notes: document.getElementById("output").value })
-  });
-
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "notebot.pdf";
-  a.click();
+function newChat() {
+  chat.innerHTML = "";
 }
