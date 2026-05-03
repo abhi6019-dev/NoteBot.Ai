@@ -1,17 +1,55 @@
 
-const BACKEND = "https://notebot-ai.onrender.com";
+const BACKEND = "https://your-backend.onrender.com";
 
-const chat = document.getElementById("chat");
+let files = [];
+let chatBox = document.getElementById("chat");
+let previewBar = document.getElementById("previewBar");
 
 /* =========================
-   CHAT RENDER
+   FILE HANDLING (FIXED)
+========================= */
+document.getElementById("fileInput").addEventListener("change", (e) => {
+  const newFiles = Array.from(e.target.files);
+  files = files.concat(newFiles);
+  renderPreviews();
+});
+
+/* =========================
+   RENDER PREVIEWS
+========================= */
+function renderPreviews() {
+  previewBar.innerHTML = "";
+
+  files.forEach((file, index) => {
+    const div = document.createElement("div");
+    div.className = "preview-item";
+
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(file);
+
+    const btn = document.createElement("button");
+    btn.innerText = "×";
+    btn.className = "remove";
+    btn.onclick = () => {
+      files.splice(index, 1);
+      renderPreviews();
+    };
+
+    div.appendChild(img);
+    div.appendChild(btn);
+    previewBar.appendChild(div);
+  });
+}
+
+/* =========================
+   CHAT UI
 ========================= */
 function addMessage(text, type) {
   const div = document.createElement("div");
-  div.classList.add("msg", type);
+  div.className = `msg ${type}`;
   div.innerText = text;
-  chat.appendChild(div);
-  chat.scrollTop = chat.scrollHeight;
+  chatBox.appendChild(div);
+  chatBox.scrollTop = chatBox.scrollHeight;
 }
 
 /* =========================
@@ -21,25 +59,48 @@ async function sendMessage() {
   const input = document.getElementById("textInput");
   const text = input.value;
 
-  if (!text) return;
+  if (!text && files.length === 0) return;
 
-  addMessage(text, "user");
+  addMessage(text || "📎 Image input", "user");
   input.value = "";
 
-  const res = await fetch(`${BACKEND}/chat`, {
+  let extractedText = "";
+
+  /* OCR STEP (optional backend) */
+  for (let f of files) {
+    const fd = new FormData();
+    fd.append("image", f);
+
+    const res = await fetch(`${BACKEND}/ocr`, {
+      method: "POST",
+      body: fd
+    });
+
+    const data = await res.json();
+    extractedText += data.text + "\n";
+  }
+
+  files = [];
+  renderPreviews();
+
+  /* AI STEP */
+  const res2 = await fetch(`${BACKEND}/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text })
+    body: JSON.stringify({
+      text: text + "\n" + extractedText
+    })
   });
 
-  const data = await res.json();
-
-  addMessage(data.reply, "ai");
+  const data2 = await res2.json();
+  addMessage(data2.reply, "ai");
 }
 
 /* =========================
    NEW CHAT
 ========================= */
 function newChat() {
-  chat.innerHTML = "";
+  chatBox.innerHTML = "";
+  files = [];
+  renderPreviews();
 }
