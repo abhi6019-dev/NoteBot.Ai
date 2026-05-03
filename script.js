@@ -1,4 +1,4 @@
-const BACKEND = "https://YOUR-RENDER-URL.onrender.com";
+const BACKEND = "https://notebot-ai.onrender.com";
 
 let images = [];
 
