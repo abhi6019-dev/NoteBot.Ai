@@ -2,15 +2,14 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: system-ui, -apple-system;
+  font-family: system-ui;
 }
 
 body {
-  background: #0a0f1c;
+  background: #0b0f19;
   color: white;
 }
 
-/* APP LAYOUT */
 .app {
   display: flex;
   height: 100vh;
@@ -18,47 +17,18 @@ body {
 
 /* SIDEBAR */
 .sidebar {
-  width: 260px;
+  width: 250px;
   background: #0f172a;
   padding: 15px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
 }
 
-.logo {
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 20px;
-}
-
-.new-chat {
-  padding: 10px;
-  border: none;
-  border-radius: 10px;
-  background: #1f2937;
-  color: white;
-  cursor: pointer;
-}
-
-.upgrade {
-  width: 100%;
-  padding: 10px;
-  border: none;
-  border-radius: 12px;
-  background: linear-gradient(135deg,#7c3aed,#06b6d4);
-  color: white;
-  font-weight: bold;
-}
-
-/* MAIN */
+/* CHAT */
 .main {
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
-/* CHAT */
 .chat {
   flex: 1;
   padding: 20px;
@@ -67,11 +37,10 @@ body {
 
 /* MESSAGE */
 .msg {
-  max-width: 75%;
+  max-width: 70%;
   padding: 12px;
+  border-radius: 12px;
   margin-bottom: 10px;
-  border-radius: 14px;
-  line-height: 1.4;
   white-space: pre-wrap;
 }
 
@@ -84,77 +53,41 @@ body {
   background: #1f2937;
 }
 
-/* PREVIEW BAR */
-.preview-bar {
+/* ATTACHMENTS INSIDE MESSAGE */
+.attachments {
   display: flex;
-  gap: 10px;
-  padding: 10px 15px;
-  overflow-x: auto;
-  border-top: 1px solid rgba(255,255,255,0.1);
+  gap: 6px;
+  margin-top: 8px;
 }
 
-.preview-item {
-  position: relative;
-}
-
-.preview-item img {
+.attachments img {
   width: 60px;
   height: 60px;
-  border-radius: 10px;
+  border-radius: 8px;
   object-fit: cover;
-  border: 1px solid rgba(255,255,255,0.2);
 }
 
-.remove {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  background: red;
-  border: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  color: white;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-/* INPUT */
-.input-area {
+/* INPUT BAR */
+.input-bar {
   display: flex;
-  gap: 10px;
-  padding: 12px;
+  padding: 10px;
   background: #0f172a;
-  border-top: 1px solid rgba(255,255,255,0.1);
+  gap: 10px;
 }
 
-.input-area input[type="text"] {
+.input-bar input {
   flex: 1;
-  padding: 12px;
-  border-radius: 12px;
-  border: none;
-  outline: none;
-  background: #111827;
-  color: white;
-}
-
-.file-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 12px;
-  background: #1f2937;
+  padding: 10px;
   border-radius: 10px;
-  cursor: pointer;
+  border: none;
 }
 
-.file-btn input {
+.attach input {
   display: none;
 }
 
-/* MOBILE */
-@media (max-width: 768px) {
-  .sidebar {
-    display: none;
-  }
+.attach {
+  padding: 10px;
+  background: #1f2937;
+  border-radius: 10px;
 }
