@@ -13,36 +13,33 @@
 
 <div class="app">
 
-  <!-- SIDEBAR / HEADER -->
   <header class="top">
     <h1>🧠 Notebot AI</h1>
-    <p>Turn images into notes, diagrams & exam summaries</p>
+    <p>Upload images → AI converts into notes instantly</p>
   </header>
 
-  <!-- UPLOAD SECTION -->
-  <section class="upload" id="dropBox">
+  <!-- UPLOAD -->
+  <section class="upload-box" id="dropBox">
     <input type="file" id="fileInput" multiple accept="image/*" hidden />
-
-    <label for="fileInput" class="upload-card">
-      📤 Drag & Drop or Click to Upload Images
-      <span>Supports multiple images • AI Vision enabled</span>
+    <label for="fileInput" class="upload-label">
+      📤 Click or Drop Images Here
+      <span>JPG • PNG • Multiple supported</span>
     </label>
   </section>
 
-  <!-- IMAGE PREVIEW -->
+  <!-- PREVIEW -->
   <section id="preview" class="preview"></section>
 
-  <!-- ACTION BUTTONS -->
+  <!-- BUTTONS -->
   <section class="actions">
     <button onclick="generateNotes()">⚡ Generate Notes</button>
     <button onclick="explainDiagram()">📊 Explain Diagram</button>
-    <button onclick="downloadPDF()">⬇ Export PDF</button>
+    <button onclick="downloadPDF()">⬇ Download PDF</button>
   </section>
 
   <!-- OUTPUT -->
   <section class="output">
-    <h2>📒 AI Output</h2>
-    <textarea id="output" placeholder="Your AI-generated study notes will appear here..."></textarea>
+    <textarea id="output" placeholder="AI output will appear here..."></textarea>
   </section>
 
 </div>
