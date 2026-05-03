@@ -7,6 +7,15 @@ document.getElementById("fileInput").addEventListener("change", (e) => {
   render();
 });
 
+const BACKEND = "https://notebot-ai.onrender.com"; // NO trailing slash
+
+let images = [];
+
+document.getElementById("fileInput").addEventListener("change", (e) => {
+  images = [...e.target.files];
+  render();
+});
+
 function render() {
   const preview = document.getElementById("preview");
   preview.innerHTML = "";
@@ -24,44 +33,33 @@ function render() {
   });
 }
 
-function showLoader(state) {
-  document.getElementById("loader").classList.toggle("hidden", !state);
-}
-
 /* =========================
-   NOTES PIPELINE
+   GENERATE NOTES
 ========================= */
 async function generateNotes() {
-  showLoader(true);
+  let text = "";
 
-  try {
-    let text = "";
+  for (let img of images) {
+    const fd = new FormData();
+    fd.append("image", img);
 
-    for (let img of images) {
-      const fd = new FormData();
-      fd.append("image", img);
-
-      const res = await fetch(BACKEND + "/ocr", {
-        method: "POST",
-        body: fd
-      });
-
-      const data = await res.json();
-      text += data.data.text + "\n";
-    }
-
-    const res2 = await fetch(BACKEND + "/notes", {
+    const res = await fetch(`${BACKEND}/ocr`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text })
+      body: fd
     });
 
-    const data2 = await res2.json();
-    document.getElementById("output").value = data2.data.notes;
-
-  } finally {
-    showLoader(false);
+    const data = await res.json();
+    text += data.text + "\n";
   }
+
+  const res2 = await fetch(`${BACKEND}/notes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text })
+  });
+
+  const data2 = await res2.json();
+  document.getElementById("output").value = data2.notes || "No notes generated";
 }
 
 /* =========================
@@ -70,21 +68,21 @@ async function generateNotes() {
 async function explainDiagram() {
   const text = document.getElementById("output").value;
 
-  const res = await fetch(BACKEND + "/diagram", {
+  const res = await fetch(`${BACKEND}/diagram`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text })
   });
 
   const data = await res.json();
-  document.getElementById("output").value = data.data.explanation;
+  document.getElementById("output").value = data.explanation || "No explanation";
 }
 
 /* =========================
    PDF
 ========================= */
 async function downloadPDF() {
-  const res = await fetch(BACKEND + "/pdf", {
+  const res = await fetch(`${BACKEND}/pdf`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ notes: document.getElementById("output").value })
