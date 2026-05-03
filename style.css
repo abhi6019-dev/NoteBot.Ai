@@ -1,129 +1,174 @@
-/* style.css */
+/* RESET */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Inter", Arial, sans-serif;
+}
 
 body {
-  font-family: Arial, sans-serif;
-  padding: 20px;
-  max-width: 800px;
+  background: #0b1020;
+  color: white;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* BACKGROUND GLOW */
+.bg {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at top, #1e293b, #0b1020);
+  z-index: -1;
+}
+
+/* MAIN APP */
+.app {
+  max-width: 900px;
   margin: auto;
-  background-color: #f9f9f9;
+  padding: 20px;
 }
 
-h1, h2 {
+/* HEADER */
+.top {
   text-align: center;
-  color: #333;
+  margin-bottom: 25px;
 }
 
-.drop-box {
-  border: 2px dashed #888;
-  border-radius: 10px;
-  padding: 40px 20px;
+.top h1 {
+  font-size: 2.4rem;
+  background: linear-gradient(90deg, #38bdf8, #22c55e);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.top p {
+  color: #94a3b8;
+  font-size: 0.95rem;
+}
+
+/* UPLOAD */
+.upload-card {
+  display: block;
+  padding: 30px;
+  border-radius: 16px;
+  border: 2px dashed #334155;
   text-align: center;
-  background-color: #fff;
+  cursor: pointer;
+  background: rgba(255,255,255,0.03);
+  backdrop-filter: blur(10px);
+  transition: 0.3s;
+}
+
+.upload-card:hover {
+  border-color: #38bdf8;
+  transform: scale(1.01);
+}
+
+.upload-card span {
+  display: block;
+  font-size: 0.8rem;
+  margin-top: 8px;
+  color: #94a3b8;
+}
+
+/* PREVIEW GRID */
+.preview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.card {
   position: relative;
-  margin-bottom: 20px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #334155;
+  background: #0f172a;
 }
 
-.drop-box:hover {
-  background-color: #f0f0f0;
+.card img {
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
 }
 
-#fileElem {
-  display: none;
-}
-
-.select-btn {
-  display: inline-block;
-  padding: 10px 20px;
-  margin-top: 10px;
-  background-color: #4caf50;
+.card button {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: red;
   color: white;
   cursor: pointer;
-  border-radius: 5px;
-  font-weight: bold;
+  font-size: 12px;
 }
 
-.preview {
-  display: flex;
-  flex-wrap: wrap;
+/* ACTIONS */
+.actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 10px;
-  margin-bottom: 20px;
-  justify-content: center;
-}
-
-.preview img {
-  width: 100px;
-  height: auto;
-  object-fit: cover;
-  border: 2px solid #ccc;
-  border-radius: 5px;
+  margin: 20px 0;
 }
 
 button {
-  padding: 10px 20px;
-  margin: 10px 5px;
+  padding: 12px;
   border: none;
-  border-radius: 5px;
-  background-color: #007bff;
-  color: white;
+  border-radius: 12px;
   font-weight: bold;
   cursor: pointer;
+  background: linear-gradient(90deg, #3b82f6, #22c55e);
+  color: white;
+  transition: 0.2s;
 }
 
 button:hover {
-  background-color: #0056b3;
+  transform: translateY(-2px);
+}
+
+/* OUTPUT */
+.output {
+  margin-top: 20px;
+}
+
+.output h2 {
+  margin-bottom: 10px;
+  font-size: 1.2rem;
 }
 
 textarea {
   width: 100%;
-  height: 200px;
-  padding: 10px;
-  margin-top: 10px;
-  font-size: 14px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  resize: vertical;
-  box-sizing: border-box;
-}
-
-.image-container {
-  position: relative;
-  display: inline-block;
-  margin: 10px;
-}
-
-.image-container img {
-  width: 150px;
-  height: auto;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-}
-
-.remove-btn {
-  position: absolute;
-  top: 2px;
-  right: 2px;
+  height: 280px;
+  padding: 15px;
+  border-radius: 14px;
+  border: 1px solid #334155;
+  background: rgba(255,255,255,0.03);
   color: white;
-  border: none;
-  border-radius: 50%;
-  width: 22px;
-  height: 22px;
-  cursor: pointer;
-  font-weight: bold;
-  line-height: 1;
+  outline: none;
+  resize: vertical;
 }
 
-.progress-container {
-  width: 100%;
-  background-color: #ddd;
-  border-radius: 10px;
-  height: 20px;
-  margin: 20px 0;
-  overflow: hidden;
-}
+/* MOBILE OPTIMIZATION */
+@media (max-width: 600px) {
 
-.progress-bar {
-  width: 0%;
-  height: 100%;
-  background-color: #4caf50;
-  transition: width 0.3s ease-in-out;
+  .top h1 {
+    font-size: 1.8rem;
+  }
+
+  .upload-card {
+    padding: 20px;
+  }
+
+  button {
+    font-size: 14px;
+  }
+
+  textarea {
+    height: 220px;
+  }
 }
