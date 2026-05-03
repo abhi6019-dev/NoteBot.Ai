@@ -10,21 +10,26 @@
 
 <div class="app">
 
+  <!-- SIDEBAR -->
   <aside class="sidebar">
-    <h2>🧠 Notebot</h2>
+    <div class="logo">🧠 Notebot</div>
     <button onclick="newChat()">+ New Chat</button>
   </aside>
 
+  <!-- MAIN -->
   <main class="main">
 
     <div id="chat" class="chat"></div>
 
-    <!-- INPUT BAR -->
-    <div class="input-bar">
+    <!-- ATTACHMENT PREVIEW BAR (ChatGPT style) -->
+    <div id="attachBar" class="attach-bar"></div>
 
-      <label class="attach">
+    <!-- INPUT -->
+    <div class="input">
+
+      <label class="file">
         📎
-        <input type="file" id="fileInput" multiple />
+        <input type="file" id="fileInput" multiple/>
       </label>
 
       <input id="textInput" placeholder="Message Notebot..." />
