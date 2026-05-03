@@ -1,28 +1,25 @@
-/* RESET */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: "Inter", Arial, sans-serif;
+  font-family: Arial, sans-serif;
 }
 
 body {
-  background: #0b1020;
+  background: #0b1220;
   color: white;
   min-height: 100vh;
-  overflow-x: hidden;
 }
 
-/* BACKGROUND GLOW */
 .bg {
   position: fixed;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle at top, #1e293b, #0b1020);
+  background: radial-gradient(circle at top, #1e293b, #0b1220);
   z-index: -1;
 }
 
-/* MAIN APP */
+/* APP */
 .app {
   max-width: 900px;
   margin: auto;
@@ -32,11 +29,11 @@ body {
 /* HEADER */
 .top {
   text-align: center;
-  margin-bottom: 25px;
+  margin-bottom: 20px;
 }
 
 .top h1 {
-  font-size: 2.4rem;
+  font-size: 2.2rem;
   background: linear-gradient(90deg, #38bdf8, #22c55e);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -44,71 +41,64 @@ body {
 
 .top p {
   color: #94a3b8;
-  font-size: 0.95rem;
 }
 
 /* UPLOAD */
-.upload-card {
+.upload-label {
   display: block;
   padding: 30px;
-  border-radius: 16px;
   border: 2px dashed #334155;
+  border-radius: 14px;
   text-align: center;
   cursor: pointer;
   background: rgba(255,255,255,0.03);
-  backdrop-filter: blur(10px);
-  transition: 0.3s;
 }
 
-.upload-card:hover {
-  border-color: #38bdf8;
-  transform: scale(1.01);
-}
-
-.upload-card span {
+.upload-label span {
   display: block;
-  font-size: 0.8rem;
-  margin-top: 8px;
+  font-size: 12px;
+  margin-top: 5px;
   color: #94a3b8;
 }
 
-/* PREVIEW GRID */
+/* PREVIEW FIX (IMPORTANT PART) */
 .preview {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin: 20px 0;
+  justify-content: center;
 }
 
-.card {
+.img-card {
   position: relative;
-  border-radius: 12px;
+  width: 100px;
+  height: 100px;
+  border-radius: 10px;
   overflow: hidden;
   border: 1px solid #334155;
-  background: #0f172a;
 }
 
-.card img {
+.img-card img {
   width: 100%;
-  height: 100px;
+  height: 100%;
   object-fit: cover;
 }
 
-.card button {
+.remove {
   position: absolute;
-  top: 5px;
-  right: 5px;
-  width: 20px;
-  height: 20px;
-  border: none;
-  border-radius: 50%;
+  top: 3px;
+  right: 3px;
   background: red;
   color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
   cursor: pointer;
-  font-size: 12px;
 }
 
-/* ACTIONS */
+/* BUTTONS */
 .actions {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -119,56 +109,32 @@ body {
 button {
   padding: 12px;
   border: none;
-  border-radius: 12px;
-  font-weight: bold;
-  cursor: pointer;
+  border-radius: 10px;
   background: linear-gradient(90deg, #3b82f6, #22c55e);
   color: white;
-  transition: 0.2s;
-}
-
-button:hover {
-  transform: translateY(-2px);
+  font-weight: bold;
+  cursor: pointer;
 }
 
 /* OUTPUT */
-.output {
-  margin-top: 20px;
-}
-
-.output h2 {
-  margin-bottom: 10px;
-  font-size: 1.2rem;
-}
-
 textarea {
   width: 100%;
-  height: 280px;
+  height: 250px;
   padding: 15px;
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1px solid #334155;
   background: rgba(255,255,255,0.03);
   color: white;
   outline: none;
-  resize: vertical;
 }
 
-/* MOBILE OPTIMIZATION */
+/* MOBILE FIX */
 @media (max-width: 600px) {
-
   .top h1 {
-    font-size: 1.8rem;
+    font-size: 1.7rem;
   }
 
-  .upload-card {
+  .upload-label {
     padding: 20px;
-  }
-
-  button {
-    font-size: 14px;
-  }
-
-  textarea {
-    height: 220px;
   }
 }
