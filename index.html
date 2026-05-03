@@ -2,32 +2,50 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Image to Notes</title>
-<link rel="stylesheet" href="style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Notebot AI</title>
+  <link rel="stylesheet" href="style.css"/>
 </head>
+
 <body>
-<h1>Image to Study Notes</h1>
 
-<div id="dropBox" class="drop-box">
-<p>
-Drag & drop images here or
-</p>
-<input type="file" id="fileElem" multiple accept="image/*" />
-<label for="fileElem" class="select-btn">Select Images</label>
+<div class="bg"></div>
+
+<div class="app">
+
+  <!-- SIDEBAR / HEADER -->
+  <header class="top">
+    <h1>🧠 Notebot AI</h1>
+    <p>Turn images into notes, diagrams & exam summaries</p>
+  </header>
+
+  <!-- UPLOAD SECTION -->
+  <section class="upload" id="dropBox">
+    <input type="file" id="fileInput" multiple accept="image/*" hidden />
+
+    <label for="fileInput" class="upload-card">
+      📤 Drag & Drop or Click to Upload Images
+      <span>Supports multiple images • AI Vision enabled</span>
+    </label>
+  </section>
+
+  <!-- IMAGE PREVIEW -->
+  <section id="preview" class="preview"></section>
+
+  <!-- ACTION BUTTONS -->
+  <section class="actions">
+    <button onclick="generateNotes()">⚡ Generate Notes</button>
+    <button onclick="explainDiagram()">📊 Explain Diagram</button>
+    <button onclick="downloadPDF()">⬇ Export PDF</button>
+  </section>
+
+  <!-- OUTPUT -->
+  <section class="output">
+    <h2>📒 AI Output</h2>
+    <textarea id="output" placeholder="Your AI-generated study notes will appear here..."></textarea>
+  </section>
+
 </div>
-
-<div id="preview" class="preview"></div>
-
-<button id="extractBtn">Extract & Generate Notes</button>
- <div id="progressContainer" class="progress-container" style="display: none;">
-  <div id="progressBar" class="progress-bar"></div>
- </div>
- 
-<h2>Notes</h2>
-<textarea id="notesOutput" placeholder="Generated notes will appear here..."></textarea>
-<br />
-<button id="downloadBtn">Download Notes as PDF</button>
 
 <script src="script.js"></script>
 </body>
