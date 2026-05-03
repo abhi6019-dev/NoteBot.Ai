@@ -1,98 +1,83 @@
-
-
 const BACKEND = "https://notebot-ai.onrender.com";
 
 let files = [];
-let chat = document.getElementById("chat");
+
+const chat = document.getElementById("chat");
+const bar = document.getElementById("attachBar");
 
 /* =========================
-   FILE HANDLING (FIXED)
+   FILES (FIXED)
 ========================= */
 document.getElementById("fileInput").addEventListener("change", (e) => {
-  files = Array.from(e.target.files);
+  files = [...files, ...Array.from(e.target.files)];
+  renderFiles();
 });
 
 /* =========================
-   CREATE MESSAGE UI
+   CHAT BUBBLES
 ========================= */
-function addMessage(role, text, attachments = []) {
+function addMsg(role, text) {
   const div = document.createElement("div");
   div.className = `msg ${role}`;
-
   div.innerText = text;
-
-  if (attachments.length > 0) {
-    const att = document.createElement("div");
-    att.className = "attachments";
-
-    attachments.forEach(file => {
-      const img = document.createElement("img");
-      img.src = URL.createObjectURL(file);
-      att.appendChild(img);
-    });
-
-    div.appendChild(att);
-  }
-
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
-
-  return div;
 }
 
 /* =========================
-   STREAMING AI RESPONSE
+   FILE PREVIEW (CHATGPT STYLE)
 ========================= */
-async function streamAI(payload, aiBubble) {
+function renderFiles() {
+  bar.innerHTML = "";
 
-  const res = await fetch(`${BACKEND}/chat-stream`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
+  files.forEach((f, i) => {
+    const wrap = document.createElement("div");
+    wrap.className = "attach-item";
+
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(f);
+
+    const btn = document.createElement("button");
+    btn.innerText = "×";
+    btn.className = "remove";
+    btn.onclick = () => {
+      files.splice(i, 1);
+      renderFiles();
+    };
+
+    wrap.appendChild(img);
+    wrap.appendChild(btn);
+    bar.appendChild(wrap);
   });
-
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-
-  let text = "";
-
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-
-    text += decoder.decode(value);
-    aiBubble.innerText = text;
-  }
 }
 
 /* =========================
-   SEND MESSAGE (FIXED FILE ISSUE)
+   SEND MESSAGE (FIXED)
 ========================= */
 async function sendMessage() {
   const input = document.getElementById("textInput");
   const text = input.value;
 
-  addMessage("user", text, files);
+  addMsg("user", text || "📎 Image");
 
-  const formData = new FormData();
-  formData.append("text", text);
+  const form = new FormData();
+  form.append("text", text);
 
-  files.forEach(f => formData.append("files", f));
+  files.forEach(f => form.append("files", f));
 
   input.value = "";
 
-  const aiBubble = addMessage("ai", "Thinking...");
-
   const res = await fetch(`${BACKEND}/chat`, {
     method: "POST",
-    body: formData
+    body: form
   });
 
   const data = await res.json();
 
-  aiBubble.innerText = data.reply;
+  addMsg("ai", data.reply);
 
   files = [];
+  renderFiles();
 }
 
 /* =========================
@@ -101,4 +86,5 @@ async function sendMessage() {
 function newChat() {
   chat.innerHTML = "";
   files = [];
+  renderFiles();
 }
