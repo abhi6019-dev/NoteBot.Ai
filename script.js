@@ -1,14 +1,18 @@
 
 const BACKEND = "https://notebot-ai.onrender.com";
 
-const fileInput = document.getElementById("fileInput");
-const preview = document.getElementById("preview");
-const output = document.getElementById("output");
-
 let images = [];
 
 /* =========================
-   FILE UPLOAD HANDLING
+   DOM ELEMENTS
+========================= */
+const fileInput = document.getElementById("fileInput");
+const preview = document.getElementById("preview");
+const output = document.getElementById("output");
+const loading = document.getElementById("loading");
+
+/* =========================
+   FILE HANDLING
 ========================= */
 fileInput.addEventListener("change", (e) => {
   handleFiles(e.target.files);
@@ -48,7 +52,19 @@ function handleFiles(files) {
 }
 
 /* =========================
-   OCR + NOTES GENERATION
+   LOADING CONTROL
+========================= */
+function showLoading(text = "Processing AI...") {
+  loading.innerText = text;
+  loading.classList.remove("hidden");
+}
+
+function hideLoading() {
+  loading.classList.add("hidden");
+}
+
+/* =========================
+   GENERATE NOTES (OCR → AI)
 ========================= */
 async function generateNotes() {
   if (!images.length) {
@@ -56,40 +72,43 @@ async function generateNotes() {
     return;
   }
 
-  output.value = "Processing images...\n";
-
-  let extractedText = "";
-
   try {
+    showLoading("Reading images...");
+
+    let extractedText = "";
+
     for (let i = 0; i < images.length; i++) {
       const fd = new FormData();
       fd.append("image", images[i]);
 
-      const res = await fetch(BACKEND + "/ocr", {
+      const res = await fetch(`${BACKEND}/ocr`, {
         method: "POST",
-        body: fd,
+        body: fd
       });
 
       const data = await res.json();
       extractedText += (data.text || "") + "\n";
     }
 
-    output.value = "Generating AI notes...\n";
+    showLoading("Generating AI notes...");
 
-    const res2 = await fetch(BACKEND + "/notes", {
+    const res2 = await fetch(`${BACKEND}/notes`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
       },
-      body: JSON.stringify({ text: extractedText }),
+      body: JSON.stringify({ text: extractedText })
     });
 
     const data2 = await res2.json();
-    output.value = data2.notes || "No notes generated";
+
+    output.value = data2.notes || "No notes generated.";
 
   } catch (err) {
-    console.error(err);
+    console.error("Generate Notes Error:", err);
     output.value = "Error generating notes.";
+  } finally {
+    hideLoading();
   }
 }
 
@@ -97,26 +116,31 @@ async function generateNotes() {
    DIAGRAM EXPLANATION
 ========================= */
 async function explainDiagram() {
-  if (!output.value) {
+  if (!output.value.trim()) {
     alert("No content to analyze");
     return;
   }
 
   try {
-    const res = await fetch(BACKEND + "/diagram", {
+    showLoading("Analyzing diagram...");
+
+    const res = await fetch(`${BACKEND}/diagram`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
       },
-      body: JSON.stringify({ text: output.value }),
+      body: JSON.stringify({ text: output.value })
     });
 
     const data = await res.json();
-    output.value = data.explanation || "No explanation generated";
+
+    output.value = data.explanation || "No explanation generated.";
 
   } catch (err) {
-    console.error(err);
-    output.value = "Diagram explanation failed.";
+    console.error("Diagram Error:", err);
+    output.value = "Failed to explain diagram.";
+  } finally {
+    hideLoading();
   }
 }
 
@@ -125,12 +149,14 @@ async function explainDiagram() {
 ========================= */
 async function downloadPDF() {
   try {
-    const res = await fetch(BACKEND + "/pdf", {
+    showLoading("Creating PDF...");
+
+    const res = await fetch(`${BACKEND}/pdf`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
       },
-      body: JSON.stringify({ notes: output.value }),
+      body: JSON.stringify({ notes: output.value })
     });
 
     const blob = await res.blob();
@@ -144,14 +170,15 @@ async function downloadPDF() {
     URL.revokeObjectURL(url);
 
   } catch (err) {
-    console.error(err);
-    alert("PDF download failed");
+    console.error("PDF Error:", err);
+    alert("PDF generation failed");
+  } finally {
+    hideLoading();
   }
 }
 
 /* =========================
-   GLOBAL EXPORT (IMPORTANT FIX)
-   Fixes "function not defined" on GitHub Pages
+   GLOBAL EXPORT (CRITICAL FIX)
 ========================= */
 window.generateNotes = generateNotes;
 window.explainDiagram = explainDiagram;
