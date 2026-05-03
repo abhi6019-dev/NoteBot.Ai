@@ -1,53 +1,93 @@
 import express from "express";
 import cors from "cors";
+import multer from "multer";
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 /* =========================
-   CHAT AI (GROQ FREE AI)
+   NORMAL CHAT (FILES INCLUDED)
 ========================= */
-app.post("/chat", async (req, res) => {
-  try {
-    const { text } = req.body;
+app.post("/chat", upload.array("files"), async (req, res) => {
+  const text = req.body.text;
 
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
-        messages: [
-          {
-            role: "system",
-            content: `
-You are Notebot AI, a study assistant.
-Give short, clear, structured answers.
-`
-          },
-          {
-            role: "user",
-            content: text
-          }
-        ]
-      })
-    });
+  // convert images to text (placeholder)
+  let extracted = "";
 
-    const data = await response.json();
-
-    const reply = data?.choices?.[0]?.message?.content || "No response";
-
-    res.json({ reply });
-
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  if (req.files) {
+    for (let f of req.files) {
+      extracted += "[image uploaded]\n";
+    }
   }
+
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        {
+          role: "system",
+          content: "You are Notebot AI. Be concise and structured."
+        },
+        {
+          role: "user",
+          content: text + "\n" + extracted
+        }
+      ]
+    })
+  });
+
+  const data = await response.json();
+
+  res.json({
+    reply: data?.choices?.[0]?.message?.content || ""
+  });
 });
 
 /* =========================
-   START SERVER
+   STREAMING ENDPOINT (CHATGPT STYLE)
 ========================= */
-app.listen(3000, () => console.log("Notebot ChatGPT UI running"));
+app.post("/chat-stream", async (req, res) => {
+  res.setHeader("Content-Type", "text/plain");
+  res.setHeader("Transfer-Encoding", "chunked");
+
+  const text = req.body.text;
+
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "llama-3.1-8b-instant",
+      stream: true,
+      messages: [
+        {
+          role: "user",
+          content: text
+        }
+      ]
+    })
+  });
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+
+    res.write(decoder.decode(value));
+  }
+
+  res.end();
+});
+
+app.listen(3000, () => console.log("ChatGPT Notebot running"));
