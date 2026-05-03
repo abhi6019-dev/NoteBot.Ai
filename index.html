@@ -13,32 +13,33 @@
 
   <!-- SIDEBAR -->
   <aside class="sidebar">
-    <h2>🧠 Notebot</h2>
+    <div class="logo">🧠 Notebot</div>
 
-    <button onclick="newChat()">+ New Chat</button>
+    <button class="new-chat" onclick="newChat()">+ New Chat</button>
 
-    <div class="history">
-      <p>Saved Notes</p>
+    <div class="sidebar-footer">
+      <button class="upgrade">Upgrade Pro</button>
     </div>
-
-    <button class="upgrade">Upgrade Pro</button>
   </aside>
 
-  <!-- MAIN CHAT -->
+  <!-- MAIN -->
   <main class="main">
 
+    <!-- CHAT -->
     <div id="chat" class="chat"></div>
 
-    <!-- INPUT AREA -->
+    <!-- UPLOAD PREVIEW -->
+    <div id="previewBar" class="preview-bar"></div>
+
+    <!-- INPUT -->
     <div class="input-area">
 
-      <input type="file" id="fileInput" multiple hidden/>
-
-      <button onclick="document.getElementById('fileInput').click()">
+      <label class="file-btn">
         📎
-      </button>
+        <input type="file" id="fileInput" multiple accept="image/*"/>
+      </label>
 
-      <input id="textInput" placeholder="Ask Notebot..."/>
+      <input id="textInput" placeholder="Ask Notebot anything..."/>
 
       <button onclick="sendMessage()">Send</button>
 
