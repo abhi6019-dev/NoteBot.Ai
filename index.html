@@ -1,7 +1,6 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Notebot AI</title>
 <link rel="stylesheet" href="style.css"/>
@@ -11,37 +10,26 @@
 
 <div class="app">
 
-  <!-- SIDEBAR -->
   <aside class="sidebar">
-    <div class="logo">🧠 Notebot</div>
-
-    <button class="new-chat" onclick="newChat()">+ New Chat</button>
-
-    <div class="sidebar-footer">
-      <button class="upgrade">Upgrade Pro</button>
-    </div>
+    <h2>🧠 Notebot</h2>
+    <button onclick="newChat()">+ New Chat</button>
   </aside>
 
-  <!-- MAIN -->
   <main class="main">
 
-    <!-- CHAT -->
     <div id="chat" class="chat"></div>
 
-    <!-- UPLOAD PREVIEW -->
-    <div id="previewBar" class="preview-bar"></div>
+    <!-- INPUT BAR -->
+    <div class="input-bar">
 
-    <!-- INPUT -->
-    <div class="input-area">
-
-      <label class="file-btn">
+      <label class="attach">
         📎
-        <input type="file" id="fileInput" multiple accept="image/*"/>
+        <input type="file" id="fileInput" multiple />
       </label>
 
-      <input id="textInput" placeholder="Ask Notebot anything..."/>
+      <input id="textInput" placeholder="Message Notebot..." />
 
-      <button onclick="sendMessage()">Send</button>
+      <button onclick="sendMessage()">➤</button>
 
     </div>
 
