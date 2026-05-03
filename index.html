@@ -1,48 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Notebot AI</title>
-  <link rel="stylesheet" href="style.css"/>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Notebot AI Pro</title>
+<link rel="stylesheet" href="style.css"/>
 </head>
 
 <body>
 
-<div class="app">
+<div class="container">
 
-  <!-- HEADER -->
-  <header class="header">
+  <div class="header">
     <h1>🧠 Notebot AI</h1>
-    <p>Turn images into structured study notes instantly</p>
-  </header>
+    <p>Turn images into perfect study notes</p>
+  </div>
 
-  <!-- UPLOAD AREA -->
-  <section class="upload-box">
+  <label class="upload-box">
     <input type="file" id="fileInput" multiple accept="image/*"/>
-    <label for="fileInput" class="upload-label">
-      📤 Drag or Click to Upload Images
-      <span>Supports multiple images (AI Vision enabled)</span>
-    </label>
-  </section>
+    <span>Tap or Drag Images Here</span>
+  </label>
 
-  <!-- IMAGE PREVIEW -->
-  <section id="preview" class="preview"></section>
+  <div id="preview"></div>
 
-  <!-- ACTION BUTTONS -->
-  <section class="actions">
-    <button onclick="generateNotes()">⚡ Generate Notes</button>
-    <button onclick="explainDiagram()">📊 Explain Diagram</button>
+  <div class="actions">
+    <button onclick="generateNotes()">✨ Generate Notes</button>
+    <button onclick="explainDiagram()">🧩 Explain</button>
     <button onclick="downloadPDF()">⬇ Export PDF</button>
-  </section>
+  </div>
 
-  <!-- LOADING -->
-  <div id="loading" class="loading hidden">Processing AI...</div>
+  <div id="loader" class="hidden">Processing AI...</div>
 
-  <!-- OUTPUT -->
-  <section class="output">
-    <textarea id="output" placeholder="Your AI-generated notes will appear here..."></textarea>
-  </section>
+  <textarea id="output" placeholder="Your AI notes will appear here..."></textarea>
 
 </div>
 
