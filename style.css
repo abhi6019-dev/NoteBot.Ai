@@ -2,11 +2,11 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: system-ui;
+  font-family: system-ui, -apple-system;
 }
 
 body {
-  background: #0b0f19;
+  background: #0a0f1c;
   color: white;
 }
 
@@ -23,19 +23,32 @@ body {
   padding: 15px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  justify-content: space-between;
 }
 
-.sidebar button {
+.logo {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.new-chat {
   padding: 10px;
-  border-radius: 10px;
   border: none;
+  border-radius: 10px;
   background: #1f2937;
   color: white;
+  cursor: pointer;
 }
 
 .upgrade {
-  background: linear-gradient(135deg, #7c3aed, #06b6d4);
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg,#7c3aed,#06b6d4);
+  color: white;
+  font-weight: bold;
 }
 
 /* MAIN */
@@ -45,7 +58,7 @@ body {
   flex-direction: column;
 }
 
-/* CHAT AREA */
+/* CHAT */
 .chat {
   flex: 1;
   padding: 20px;
@@ -54,34 +67,89 @@ body {
 
 /* MESSAGE */
 .msg {
-  padding: 10px;
+  max-width: 75%;
+  padding: 12px;
   margin-bottom: 10px;
-  border-radius: 10px;
-  max-width: 80%;
+  border-radius: 14px;
+  line-height: 1.4;
+  white-space: pre-wrap;
 }
 
 .user {
   background: #2563eb;
-  align-self: flex-end;
+  margin-left: auto;
 }
 
 .ai {
   background: #1f2937;
 }
 
+/* PREVIEW BAR */
+.preview-bar {
+  display: flex;
+  gap: 10px;
+  padding: 10px 15px;
+  overflow-x: auto;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.preview-item {
+  position: relative;
+}
+
+.preview-item img {
+  width: 60px;
+  height: 60px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.remove {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: red;
+  border: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+}
+
 /* INPUT */
 .input-area {
   display: flex;
-  padding: 10px;
   gap: 10px;
+  padding: 12px;
   background: #0f172a;
+  border-top: 1px solid rgba(255,255,255,0.1);
 }
 
-.input-area input {
+.input-area input[type="text"] {
   flex: 1;
-  padding: 10px;
-  border-radius: 10px;
+  padding: 12px;
+  border-radius: 12px;
   border: none;
+  outline: none;
+  background: #111827;
+  color: white;
+}
+
+.file-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  background: #1f2937;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.file-btn input {
+  display: none;
 }
 
 /* MOBILE */
