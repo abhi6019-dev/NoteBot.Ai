@@ -40,20 +40,9 @@ All of it happens in a **clean, premium, streaming AI interface** with memory an
 
 ## 🎬 Demo GIF
 
-Add a short GIF here to instantly show the product in action.
-
 ```md
 ![Notebot demo](./assets/notebot-demo.gif)
 ```
-
-Recommended GIF flow:
-1. upload an image
-2. show preview
-3. stream AI output
-4. switch modes
-5. export PDF
-
-If you do not have a GIF yet, create one from a screen recording and save it as:
 
 ```txt
 assets/notebot-demo.gif
@@ -101,7 +90,7 @@ The same core can expand into:
 
 ---
 
-## 💡 Why investors notice it
+## 💡 Why investors should notice it
 
 Notebot is attractive because it combines:
 
@@ -117,7 +106,6 @@ It can start as a study tool and grow into a full **AI learning OS**.
 
 ## ⚡ Features
 
-- ChatGPT-style interface
 - Streaming AI output
 - Memory system
 - Image upload + preview
@@ -154,10 +142,9 @@ It can start as a study tool and grow into a full **AI learning OS**.
 
 ```txt
 notebot-ai/
-├─ frontend/
-│  ├─ index.html
-│  ├─ style.css
-│  └─ script.js
+├─ index.html
+├─ style.css
+└─ script.js
 ├─ backend/
 │  ├─ server.js
 │  ├─ package.json
@@ -172,59 +159,6 @@ notebot-ai/
 
 **Visit the app:**  
 https://abhi6019-dev.github.io/NoteBot.Ai/
-
----
-
-## 📈 GitHub growth optimization
-
-If you want this repository to grow, do these things:
-
-### Pin the repo
-Pin Notebot AI on your profile so visitors see it first.
-
-### Add a strong README header
-Use:
-- a short value proposition
-- live demo button
-- screenshots or GIF
-- feature list
-- deployment notes
-
-### Add screenshots
-Add:
-- desktop UI
-- mobile UI
-- attachments preview
-- streaming output
-
-### Add a demo GIF
-A GIF dramatically increases repo engagement.
-
-### Use release tags
-Create releases like:
-- `v1.0 - MVP`
-- `v1.1 - Memory`
-- `v1.2 - Streaming UI`
-
-### Add topics
-Use GitHub topics like:
-- `ai`
-- `education`
-- `notes`
-- `chatgpt-clone`
-- `supabase`
-- `groq`
-- `student-tools`
-
-### Keep commits clean
-Use meaningful commit messages:
-- `feat: add memory panel`
-- `fix: improve mobile composer`
-- `ui: upgrade sidebar and preview`
-- `docs: improve README`
-
-### Add a short demo video
-If possible, link a 20–30 second demo clip in the README.
 
 ---
 
