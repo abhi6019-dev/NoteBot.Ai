@@ -1,47 +1,120 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Notebot AI</title>
-<link rel="stylesheet" href="style.css"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Notebot AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
-
 <body>
+  <div class="app-shell">
+    <div class="backdrop"></div>
 
-<div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-top">
+        <div class="brand">
+          <div class="brand-mark">N</div>
+          <div>
+            <div class="brand-title">Notebot</div>
+            <div class="brand-subtitle">Investor-ready AI study OS</div>
+          </div>
+        </div>
 
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
-    <div class="logo">🧠 Notebot</div>
-    <button onclick="newChat()">+ New Chat</button>
-  </aside>
+        <button class="sidebar-action primary" id="newChatBtn">New chat</button>
+        <button class="sidebar-action secondary" id="exportBtn">Export PDF</button>
+      </div>
 
-  <!-- MAIN -->
-  <main class="main">
+      <div class="memory-card">
+        <div class="memory-label">Memory</div>
+        <div class="memory-text" id="memorySummary">Loading…</div>
+      </div>
 
-    <div id="chat" class="chat"></div>
+      <div class="history-header">
+        <span>Chats</span>
+        <button class="ghost" id="refreshChatsBtn">Refresh</button>
+      </div>
 
-    <!-- ATTACHMENT PREVIEW BAR (ChatGPT style) -->
-    <div id="attachBar" class="attach-bar"></div>
+      <div class="chat-list" id="chatList"></div>
 
-    <!-- INPUT -->
-    <div class="input">
+      <div class="sidebar-footer">
+        <div class="upgrade-card">
+          <div class="upgrade-title">Pro-ready foundation</div>
+          <div class="upgrade-desc">Streaming, history, memory, uploads, modes.</div>
+        </div>
+      </div>
+    </aside>
 
-      <label class="file">
-        📎
-        <input type="file" id="fileInput" multiple/>
-      </label>
+    <main class="main">
+      <header class="topbar">
+        <button class="icon-btn mobile-only" id="menuBtn" aria-label="Open menu">☰</button>
 
-      <input id="textInput" placeholder="Message Notebot..." />
+        <div class="topbar-title">
+          <div class="eyebrow">Notebot AI</div>
+          <h1>ChatGPT-level study workspace</h1>
+        </div>
 
-      <button onclick="sendMessage()">➤</button>
+        <div class="topbar-actions">
+          <button class="ghost desktop-only" id="copyLastBtn">Copy last</button>
+          <button class="ghost desktop-only" id="clearFilesBtn">Clear files</button>
+        </div>
+      </header>
 
-    </div>
+      <section class="hero">
+        <div class="hero-copy">
+          <div class="hero-pill">Streaming AI • Memory • Attachments • Notes • Flashcards • Quiz</div>
+          <h2>Turn screenshots, class photos, and rough notes into polished study material.</h2>
+          <p>
+            Upload an image, let OCR read it in the browser, and send everything into a streaming chat
+            with persistent memory and conversation history.
+          </p>
+        </div>
+      </section>
 
-  </main>
+      <section class="chat-panel">
+        <div class="chat" id="chat"></div>
 
-</div>
+        <div class="status-line" id="statusLine">Ready.</div>
 
-<script src="script.js"></script>
+        <div class="mode-row" id="modeRow">
+          <button class="mode-pill active" data-mode="chat">Chat</button>
+          <button class="mode-pill" data-mode="notes">Notes</button>
+          <button class="mode-pill" data-mode="flashcards">Flashcards</button>
+          <button class="mode-pill" data-mode="quiz">Quiz</button>
+          <button class="mode-pill" data-mode="explain">Explain</button>
+          <button class="mode-pill" data-mode="planner">Planner</button>
+        </div>
+
+        <div class="attachment-strip" id="attachmentStrip"></div>
+
+        <div class="composer">
+          <label class="attach-btn" for="fileInput" title="Upload images">
+            <span>＋</span>
+            <input id="fileInput" type="file" accept="image/*" multiple hidden />
+          </label>
+
+          <div class="composer-inner">
+            <textarea id="textInput" rows="1" placeholder="Message Notebot…"></textarea>
+            <div class="composer-hint">Shift + Enter for a new line</div>
+          </div>
+
+          <button class="send-btn" id="sendBtn">Send</button>
+        </div>
+
+        <div class="drop-zone" id="dropZone">
+          Drop images here to attach
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="mobile-backdrop" id="mobileBackdrop"></div>
+
+  <script src="script.js"></script>
 </body>
 </html>
