@@ -40,13 +40,7 @@ All of it happens in a **clean, premium, streaming AI interface** with memory an
 
 ## 🎬 Demo GIF
 
-```md
 ![Notebot demo](./assets/notebot-demo.gif)
-```
-
-```txt
-assets/notebot-demo.gif
-```
 
 ---
 
