@@ -1,22 +1,23 @@
 import express from "express";
 import cors from "cors";
 import PDFDocument from "pdfkit";
-import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
 
 const app = express();
 
 const {
   PORT = 3000,
-  CORS_ORIGIN = "*",
   GROQ_API_KEY,
   GROQ_MODEL = "llama-3.1-8b-instant",
   SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY
 } = process.env;
 
-if (!GROQ_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.warn("Missing one or more required environment variables.");
+if (!GROQ_API_KEY) {
+  console.warn("GROQ_API_KEY is missing.");
+}
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.warn("Supabase env vars are missing.");
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -27,83 +28,110 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   }
 });
 
-const ai = new OpenAI({
-  apiKey: GROQ_API_KEY,
-  baseURL: "https://api.groq.com/openai/v1"
-});
+app.use(
+  cors({
+    origin: true,
+    methods: ["GET", "POST", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    exposedHeaders: ["Content-Type"],
+    maxAge: 86400
+  })
+);
 
-const corsOrigins = CORS_ORIGIN === "*" ? "*" : CORS_ORIGIN.split(",").map(s => s.trim());
+app.options("*", cors());
 
-app.use(cors({ origin: corsOrigins }));
 app.use(express.json({ limit: "20mb" }));
 
 function nowIso() {
   return new Date().toISOString();
 }
 
-function safeTrim(value, max = 12000) {
-  if (!value) return "";
+function safeText(value, max = 12000) {
+  if (value == null) return "";
   return String(value).trim().slice(0, max);
 }
 
-function makeTitleFromText(text) {
-  const clean = safeTrim(text, 120);
+function sanitizeMode(mode) {
+  const allowed = new Set(["chat", "notes", "flashcards", "quiz", "explain", "planner"]);
+  return allowed.has(mode) ? mode : "chat";
+}
+
+function makeTitle(text) {
+  const clean = safeText(text, 160);
   if (!clean) return "New chat";
-  const words = clean
+  const title = clean
     .replace(/\s+/g, " ")
     .replace(/[^\w\s-]/g, "")
     .split(" ")
     .filter(Boolean)
-    .slice(0, 6);
-  return words.join(" ") || "New chat";
+    .slice(0, 6)
+    .join(" ");
+  return title || "New chat";
 }
 
 function modePrompt(mode) {
   switch (mode) {
     case "notes":
-      return `You are Notebot, a world-class study assistant.
-Turn the user's content into polished revision notes with:
+      return `Turn the user's content into polished study notes with:
 - clear headings
-- bullets
-- key terms
-- formulas if relevant
-- compact exam-friendly phrasing`;
+- bullet points
+- key formulas if relevant
+- exam-ready phrasing
+- concise but useful structure`;
     case "flashcards":
-      return `You are Notebot.
-Create 8-12 concise flashcards in a clean Q/A format.
-Keep answers short, accurate, and exam-ready.`;
+      return `Create 8 to 12 compact flashcards in Q/A format.
+Keep them accurate and short.`;
     case "quiz":
-      return `You are Notebot.
-Create a 5-question multiple choice quiz from the user's content.
-Provide answers at the end with brief explanations.`;
+      return `Create a 5-question multiple choice quiz from the content.
+Include answers at the end with brief explanations.`;
     case "explain":
-      return `You are Notebot.
-Explain the user's content simply, step by step, like a great teacher.`;
+      return `Explain the content step by step in simple student-friendly language.`;
     case "planner":
-      return `You are Notebot.
-Create a practical study plan and revision roadmap from the user's content.`;
+      return `Turn the content into a study plan, revision roadmap, and priorities.`;
     default:
-      return `You are Notebot, a fast, accurate AI study assistant.
-Be concise, structured, and useful.`;
+      return `You are Notebot, a premium study assistant.
+Be clear, structured, and helpful.
+Use markdown when useful.`;
   }
 }
 
-function buildUserContext({ text, ocrText, attachments }) {
-  const parts = [];
-  if (text) parts.push(`User message:\n${text}`);
-  if (ocrText) parts.push(`OCR text from attachments:\n${ocrText}`);
-  if (attachments?.length) {
-    const list = attachments.map(a => `- ${a.name || "file"} (${a.type || "unknown"})`).join("\n");
-    parts.push(`Attachments:\n${list}`);
+async function groqChat(messages, { stream = false, temperature = 0.35 } = {}) {
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${GROQ_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      messages,
+      temperature,
+      stream
+    })
+  });
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => "");
+    throw new Error(`Groq error ${response.status}: ${errText || response.statusText}`);
   }
-  return parts.join("\n\n").trim();
+
+  return response;
+}
+
+async function groqText(messages, opts = {}) {
+  const response = await groqChat(messages, { ...opts, stream: false });
+  const data = await response.json();
+  return data?.choices?.[0]?.message?.content?.trim() || "";
 }
 
 async function ensureProfile(sessionId) {
   const { error } = await supabase
     .from("profiles")
     .upsert(
-      { session_id: sessionId, updated_at: nowIso() },
+      {
+        session_id: sessionId,
+        updated_at: nowIso()
+      },
       { onConflict: "session_id" }
     );
 
@@ -118,6 +146,7 @@ async function getMemorySummary(sessionId) {
     .limit(1);
 
   if (error) throw error;
+
   return data?.[0]?.memory_summary || "";
 }
 
@@ -158,7 +187,7 @@ async function getConversations(sessionId) {
   return data || [];
 }
 
-async function getMessages(conversationId, limit = 20) {
+async function getMessages(conversationId, limit = 50) {
   const { data, error } = await supabase
     .from("messages")
     .select("role,content,attachments_json,ocr_text,mode,created_at")
@@ -178,21 +207,24 @@ async function insertMessage(row) {
 async function updateConversation(conversationId, patch) {
   const { error } = await supabase
     .from("conversations")
-    .update({ ...patch, updated_at: nowIso() })
+    .update({
+      ...patch,
+      updated_at: nowIso()
+    })
     .eq("id", conversationId);
 
   if (error) throw error;
 }
 
-async function summarizeMemory({ existingSummary, latestUser, latestAssistant }) {
+async function summarizeMemory(existingSummary, latestUser, latestAssistant) {
   const prompt = `
-You maintain a compact memory summary for a student study assistant.
+You maintain a compact memory summary for a student assistant.
 
 Rules:
-- Keep only stable, useful facts and preferences.
-- Remove fluff.
-- Keep under 120 words.
-- Return plain text only.
+- keep only stable and useful facts/preferences
+- remove fluff
+- keep it under 120 words
+- plain text only
 
 Existing memory:
 ${existingSummary || "(none)"}
@@ -202,51 +234,95 @@ User: ${latestUser}
 Assistant: ${latestAssistant}
 `.trim();
 
-  const completion = await ai.chat.completions.create({
-    model: GROQ_MODEL,
-    temperature: 0.2,
-    messages: [
-      { role: "system", content: "Compress memory into a short stable profile." },
-      { role: "user", content: prompt }
-    ]
-  });
+  const summary = await groqText(
+    [
+      {
+        role: "system",
+        content: "Compress memory into a short stable profile."
+      },
+      {
+        role: "user",
+        content: prompt
+      }
+    ],
+    { temperature: 0.2 }
+  );
 
-  return completion.choices?.[0]?.message?.content?.trim() || existingSummary || "";
+  return summary || existingSummary || "";
 }
 
-async function streamGroqResponse(messages, res) {
-  const stream = await ai.chat.completions.create({
-    model: GROQ_MODEL,
-    temperature: 0.35,
-    stream: true,
-    messages
-  });
+async function streamGroq(messages, res) {
+  const response = await groqChat(messages, { stream: true, temperature: 0.35 });
 
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+
+  let buffer = "";
   let fullText = "";
 
-  for await (const part of stream) {
-    const token = part.choices?.[0]?.delta?.content || "";
-    if (token) {
-      fullText += token;
-      res.write(token);
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (!line.startsWith("data:")) continue;
+
+      const data = line.slice(5).trim();
+      if (!data) continue;
+      if (data === "[DONE]") continue;
+
+      let parsed;
+      try {
+        parsed = JSON.parse(data);
+      } catch {
+        continue;
+      }
+
+      const token = parsed?.choices?.[0]?.delta?.content || "";
+      if (token) {
+        fullText += token;
+        res.write(token);
+      }
     }
   }
 
-  return fullText;
+  if (buffer.trim().startsWith("data:")) {
+    const data = buffer.trim().slice(5).trim();
+    if (data && data !== "[DONE]") {
+      try {
+        const parsed = JSON.parse(data);
+        const token = parsed?.choices?.[0]?.delta?.content || "";
+        if (token) {
+          fullText += token;
+          res.write(token);
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  return fullText.trim();
 }
 
 app.get("/health", (_req, res) => {
-  res.json({ ok: true, name: "Notebot AI API" });
+  res.json({ ok: true, service: "Notebot AI API" });
 });
 
 app.post("/conversations", async (req, res) => {
   try {
-    const sessionId = safeTrim(req.body?.sessionId, 200);
-    const mode = ["chat", "notes", "flashcards", "quiz", "explain", "planner"].includes(req.body?.mode)
-      ? req.body.mode
-      : "chat";
+    const sessionId = safeText(req.body?.sessionId, 200);
+    const mode = sanitizeMode(req.body?.mode || "chat");
 
-    if (!sessionId) return res.status(400).json({ error: "Missing sessionId" });
+    if (!sessionId) {
+      return res.status(400).json({ error: "Missing sessionId" });
+    }
 
     await ensureProfile(sessionId);
 
@@ -268,53 +344,73 @@ app.post("/conversations", async (req, res) => {
     res.json({ conversation: data });
   } catch (err) {
     console.error("CREATE CONVERSATION ERROR:", err);
-    res.status(500).json({ error: "CREATE_CONVERSATION_FAILED", message: err.message });
+    res.status(500).json({
+      error: "CREATE_CONVERSATION_FAILED",
+      message: err.message
+    });
   }
 });
 
 app.get("/conversations", async (req, res) => {
   try {
-    const sessionId = safeTrim(req.query.sessionId, 200);
-    if (!sessionId) return res.status(400).json({ error: "Missing sessionId" });
+    const sessionId = safeText(req.query.sessionId, 200);
+    if (!sessionId) {
+      return res.status(400).json({ error: "Missing sessionId" });
+    }
 
     const conversations = await getConversations(sessionId);
     res.json({ conversations });
   } catch (err) {
     console.error("LIST CONVERSATIONS ERROR:", err);
-    res.status(500).json({ error: "LIST_CONVERSATIONS_FAILED", message: err.message });
+    res.status(500).json({
+      error: "LIST_CONVERSATIONS_FAILED",
+      message: err.message
+    });
   }
 });
 
 app.get("/messages/:conversationId", async (req, res) => {
   try {
-    const conversationId = safeTrim(req.params.conversationId, 80);
-    if (!conversationId) return res.status(400).json({ error: "Missing conversationId" });
+    const conversationId = safeText(req.params.conversationId, 80);
+    if (!conversationId) {
+      return res.status(400).json({ error: "Missing conversationId" });
+    }
 
     const messages = await getMessages(conversationId, 50);
     res.json({ messages });
   } catch (err) {
     console.error("LOAD MESSAGES ERROR:", err);
-    res.status(500).json({ error: "LOAD_MESSAGES_FAILED", message: err.message });
+    res.status(500).json({
+      error: "LOAD_MESSAGES_FAILED",
+      message: err.message
+    });
   }
 });
 
 app.get("/memory/:sessionId", async (req, res) => {
   try {
-    const sessionId = safeTrim(req.params.sessionId, 200);
-    if (!sessionId) return res.status(400).json({ error: "Missing sessionId" });
+    const sessionId = safeText(req.params.sessionId, 200);
+    if (!sessionId) {
+      return res.status(400).json({ error: "Missing sessionId" });
+    }
 
     const memorySummary = await getMemorySummary(sessionId);
     res.json({ memorySummary });
   } catch (err) {
     console.error("LOAD MEMORY ERROR:", err);
-    res.status(500).json({ error: "LOAD_MEMORY_FAILED", message: err.message });
+    res.status(500).json({
+      error: "LOAD_MEMORY_FAILED",
+      message: err.message
+    });
   }
 });
 
 app.delete("/conversations/:conversationId", async (req, res) => {
   try {
-    const conversationId = safeTrim(req.params.conversationId, 80);
-    if (!conversationId) return res.status(400).json({ error: "Missing conversationId" });
+    const conversationId = safeText(req.params.conversationId, 80);
+    if (!conversationId) {
+      return res.status(400).json({ error: "Missing conversationId" });
+    }
 
     const { error: messagesError } = await supabase
       .from("messages")
@@ -333,19 +429,20 @@ app.delete("/conversations/:conversationId", async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     console.error("DELETE CONVERSATION ERROR:", err);
-    res.status(500).json({ error: "DELETE_CONVERSATION_FAILED", message: err.message });
+    res.status(500).json({
+      error: "DELETE_CONVERSATION_FAILED",
+      message: err.message
+    });
   }
 });
 
 app.post("/chat/stream", async (req, res) => {
-  const sessionId = safeTrim(req.body?.sessionId, 200);
-  const conversationId = safeTrim(req.body?.conversationId, 80);
-  const text = safeTrim(req.body?.text, 12000);
-  const ocrText = safeTrim(req.body?.ocrText, 20000);
+  const sessionId = safeText(req.body?.sessionId, 200);
+  const conversationId = safeText(req.body?.conversationId, 80);
+  const text = safeText(req.body?.text, 12000);
+  const ocrText = safeText(req.body?.ocrText, 20000);
   const attachments = Array.isArray(req.body?.attachments) ? req.body.attachments : [];
-  const mode = ["chat", "notes", "flashcards", "quiz", "explain", "planner"].includes(req.body?.mode)
-    ? req.body.mode
-    : "chat";
+  const mode = sanitizeMode(req.body?.mode || "chat");
 
   if (!sessionId || !conversationId) {
     return res.status(400).json({ error: "Missing sessionId or conversationId" });
@@ -359,45 +456,57 @@ app.post("/chat/stream", async (req, res) => {
     await ensureProfile(sessionId);
 
     const convo = await getConversation(conversationId);
-    if (!convo) return res.status(404).json({ error: "Conversation not found" });
+    if (!convo) {
+      return res.status(404).json({ error: "Conversation not found" });
+    }
 
     const priorMessages = await getMessages(conversationId, 16);
     const memorySummary = await getMemorySummary(sessionId);
 
-    const userContext = buildUserContext({
-      text,
-      ocrText,
-      attachments: attachments.map(a => ({
-        name: a?.name,
-        type: a?.type
-      }))
-    });
+    const attachmentNames = attachments
+      .map(a => `- ${safeText(a?.name, 120)} (${safeText(a?.type, 80)})`)
+      .join("\n");
 
-    const titleCandidate = convo.title === "New chat" ? makeTitleFromText(text || ocrText) : convo.title;
+    const userContext = [
+      text ? `User message:\n${text}` : "",
+      ocrText ? `OCR text from images:\n${ocrText}` : "",
+      attachmentNames ? `Attachments:\n${attachmentNames}` : ""
+    ]
+      .filter(Boolean)
+      .join("\n\n")
+      .trim();
 
-    const systemPrompt = `${modePrompt(mode)}
+    const titleCandidate = convo.title === "New chat" ? makeTitle(text || ocrText) : convo.title;
 
-You are Notebot, a premium study assistant inside a ChatGPT-style product.
-Always be:
-- accurate
-- visually structured
-- concise when the user wants notes
-- friendly and polished
-- useful on mobile screens
+    const systemPrompt = `
+${modePrompt(mode)}
 
-If the user uploads images, use the OCR text that comes with the message.
-If the user asks for notes, use markdown headings and bullet points.
-If the user asks for flashcards, format as Q: / A:.
-If the user asks for a quiz, give numbered questions and answers at the end.`.trim();
+You are Notebot, a premium student assistant inside a ChatGPT-style product.
 
-    const contextMessages = [
+Rules:
+- Be accurate and structured.
+- Use markdown when useful.
+- If the user asks for notes, use headings and bullets.
+- If the user asks for flashcards, format as Q:/A:.
+- If the user asks for a quiz, give answers at the end.
+- If OCR text exists, use it.
+- Keep it readable on mobile screens.
+`.trim();
+
+    const messages = [
       { role: "system", content: systemPrompt },
       {
         role: "system",
         content: `Long-term memory summary:\n${memorySummary || "(none yet)"}`.trim()
       },
-      ...priorMessages.map(m => ({ role: m.role, content: m.content })),
-      { role: "user", content: userContext }
+      ...priorMessages.map(m => ({
+        role: m.role,
+        content: m.content
+      })),
+      {
+        role: "user",
+        content: userContext
+      }
     ];
 
     await insertMessage({
@@ -427,8 +536,7 @@ If the user asks for a quiz, give numbered questions and answers at the end.`.tr
     let assistantText = "";
 
     try {
-      const streamed = await streamGroqResponse(contextMessages, res);
-      assistantText = streamed;
+      assistantText = await streamGroq(messages, res);
     } catch (streamErr) {
       console.error("STREAM ERROR:", streamErr);
       res.write("\n\n[Response interrupted]");
@@ -445,19 +553,25 @@ If the user asks for a quiz, give numbered questions and answers at the end.`.tr
       mode
     });
 
-    await updateConversation(conversationId, { title: titleCandidate, mode });
-
-    const updatedMemory = await summarizeMemory({
-      existingSummary: memorySummary,
-      latestUser: text || ocrText || "(attachment only)",
-      latestAssistant: assistantText
-    });
+    const updatedMemory = await summarizeMemory(
+      memorySummary,
+      text || ocrText || "(attachment only)",
+      assistantText
+    );
 
     await setMemorySummary(sessionId, updatedMemory);
+
+    await updateConversation(conversationId, {
+      title: titleCandidate,
+      mode
+    });
   } catch (err) {
     console.error("CHAT STREAM ERROR:", err);
     if (!res.headersSent) {
-      res.status(500).json({ error: "CHAT_STREAM_FAILED", message: err.message });
+      res.status(500).json({
+        error: "CHAT_STREAM_FAILED",
+        message: err.message
+      });
     } else {
       res.end();
     }
@@ -466,34 +580,39 @@ If the user asks for a quiz, give numbered questions and answers at the end.`.tr
 
 app.post("/export/pdf", async (req, res) => {
   try {
-    const conversationId = safeTrim(req.body?.conversationId, 80);
-    const title = safeTrim(req.body?.title, 120) || "Notebot Notes";
+    const conversationId = safeText(req.body?.conversationId, 80);
+    const title = safeText(req.body?.title, 120) || "Notebot Notes";
 
     if (!conversationId) {
       return res.status(400).json({ error: "Missing conversationId" });
     }
 
     const convo = await getConversation(conversationId);
-    if (!convo) return res.status(404).json({ error: "Conversation not found" });
+    if (!convo) {
+      return res.status(404).json({ error: "Conversation not found" });
+    }
 
     const messages = await getMessages(conversationId, 200);
-
     const doc = new PDFDocument({ margin: 40, size: "A4" });
 
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${title.replace(/[^\w\- ]+/g, "").slice(0, 50) || "notebot"}.pdf"`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${title.replace(/[^\w\- ]+/g, "").slice(0, 50) || "notebot"}.pdf"`
+    );
 
     doc.pipe(res);
 
     doc.fontSize(20).text(title, { align: "center" });
     doc.moveDown(0.6);
-    doc.fontSize(10).fillColor("#666").text(`Generated by Notebot • ${new Date().toLocaleString()}`, { align: "center" });
+    doc.fontSize(10).fillColor("#666").text(`Generated by Notebot • ${new Date().toLocaleString()}`, {
+      align: "center"
+    });
     doc.moveDown(1.2);
     doc.fillColor("#000");
 
     for (const msg of messages) {
-      doc.fontSize(12).fillColor(msg.role === "user" ? "#0f172a" : "#111827");
-      doc.font("Helvetica-Bold").text(msg.role === "user" ? "You" : "Notebot");
+      doc.fontSize(12).font("Helvetica-Bold").text(msg.role === "user" ? "You" : "Notebot");
       doc.font("Helvetica").text(msg.content || "");
       doc.moveDown(0.8);
     }
@@ -501,7 +620,10 @@ app.post("/export/pdf", async (req, res) => {
     doc.end();
   } catch (err) {
     console.error("PDF EXPORT ERROR:", err);
-    res.status(500).json({ error: "PDF_EXPORT_FAILED", message: err.message });
+    res.status(500).json({
+      error: "PDF_EXPORT_FAILED",
+      message: err.message
+    });
   }
 });
 
