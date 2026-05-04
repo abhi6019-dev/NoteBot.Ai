@@ -24,17 +24,13 @@ const sendBtnEl = document.getElementById("sendBtn");
 const dropZoneEl = document.getElementById("dropZone");
 const sidebarEl = document.getElementById("sidebar");
 const mobileBackdropEl = document.getElementById("mobileBackdrop");
-
+const suggestionButtons = [...document.querySelectorAll(".suggestion")];
 const modeButtons = [...document.querySelectorAll(".mode-pill")];
 
 document.addEventListener("DOMContentLoaded", init);
 
 function api(path) {
   return `${BACKEND}${path}`;
-}
-
-function getEl(id) {
-  return document.getElementById(id);
 }
 
 function setStatus(text) {
@@ -126,7 +122,7 @@ function renderWelcomeIfEmpty() {
   bubble.className = "bubble";
   bubble.innerHTML = `
     <h2>Welcome to Notebot</h2>
-    <p>Upload images, drop files, or type a question. Notebot will keep memory, stream responses, and save your chats.</p>
+    <p>Upload images, drop files, or type a question. Notebot keeps memory, streams responses, and saves your chats.</p>
   `;
 
   welcome.appendChild(bubble);
@@ -192,6 +188,15 @@ function appendFiles(files) {
   selectedFiles = [...selectedFiles, ...imageFiles].slice(0, 6);
   renderAttachmentStrip();
   setStatus(`${selectedFiles.length} image(s) attached.`);
+}
+
+async function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 async function ocrImage(file) {
@@ -486,42 +491,17 @@ async function sendMessage() {
   isStreaming = false;
 }
 
-function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-async function newChat() {
-  const res = await fetch(api("/conversations"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ sessionId, mode: currentMode })
-  });
-
-  const data = await res.json();
-  if (!res.ok) {
-    setStatus("Could not start a new chat.");
-    return;
-  }
-
-  conversationId = data.conversation.id;
-  localStorage.setItem(conversationKey, conversationId);
-
-  selectedFiles = [];
-  renderAttachmentStrip();
-  chatEl.innerHTML = "";
-  renderWelcomeIfEmpty();
-  await refreshSidebar();
-  setStatus("New chat ready.");
-}
-
-function setupEvents() {
+function bindEvents() {
   modeButtons.forEach(btn => {
     btn.addEventListener("click", () => setMode(btn.dataset.mode));
+  });
+
+  suggestionButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      messageInputEl.value = btn.dataset.suggest || "";
+      messageInputEl.focus();
+      autoGrowTextarea();
+    });
   });
 
   document.getElementById("newChatBtn").addEventListener("click", async () => {
@@ -541,6 +521,7 @@ function setupEvents() {
 
   sendBtnEl.addEventListener("click", sendMessage);
 
+  messageInputEl.addEventListener("input", autoGrowTextarea);
   messageInputEl.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -571,8 +552,37 @@ function setupEvents() {
   });
 }
 
+function autoGrowTextarea() {
+  messageInputEl.style.height = "auto";
+  messageInputEl.style.height = Math.min(messageInputEl.scrollHeight, 180) + "px";
+}
+
+async function newChat() {
+  const res = await fetch(api("/conversations"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sessionId, mode: currentMode })
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    setStatus("Could not start a new chat.");
+    return;
+  }
+
+  conversationId = data.conversation.id;
+  localStorage.setItem(conversationKey, conversationId);
+
+  selectedFiles = [];
+  renderAttachmentStrip();
+  chatEl.innerHTML = "";
+  renderWelcomeIfEmpty();
+  await refreshSidebar();
+  setStatus("New chat ready.");
+}
+
 async function init() {
-  setupEvents();
+  bindEvents();
   setMode(currentMode);
 
   if (!conversationId) {
@@ -587,6 +597,8 @@ async function init() {
   if (!chatEl.children.length) {
     renderWelcomeIfEmpty();
   }
+
+  autoGrowTextarea();
 }
 
 init().catch(err => {
