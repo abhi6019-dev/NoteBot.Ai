@@ -3,10 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#070b14" />
   <title>Notebot AI</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="style.css" />
 
   <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -23,7 +26,7 @@
           <div class="brand-mark">N</div>
           <div>
             <div class="brand-title">Notebot</div>
-            <div class="brand-subtitle">ChatGPT-level study OS</div>
+            <div class="brand-subtitle">Your AI-powered study system</div>
           </div>
         </div>
 
@@ -74,6 +77,13 @@
             Upload an image, let OCR read it in the browser, then send everything into a streaming chat
             with persistent memory and conversation history.
           </p>
+
+          <div class="hero-suggestions">
+            <button class="suggestion" data-suggest="Summarize this page into exam notes">Summarize</button>
+            <button class="suggestion" data-suggest="Turn this into flashcards">Flashcards</button>
+            <button class="suggestion" data-suggest="Explain this like a tutor">Explain</button>
+            <button class="suggestion" data-suggest="Create a quiz from this topic">Quiz</button>
+          </div>
         </div>
       </section>
 
