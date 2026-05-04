@@ -1,14 +1,20 @@
 {
   "name": "notebot-ai",
   "version": "1.0.0",
+  "private": true,
   "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "latest",
+    "@supabase/supabase-js": "latest",
     "cors": "latest",
-    "multer": "latest"
+    "express": "latest",
+    "openai": "latest",
+    "pdfkit": "latest"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
