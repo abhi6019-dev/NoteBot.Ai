@@ -6,8 +6,9 @@
   <title>Notebot AI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
+
   <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -22,7 +23,7 @@
           <div class="brand-mark">N</div>
           <div>
             <div class="brand-title">Notebot</div>
-            <div class="brand-subtitle">Investor-ready AI study OS</div>
+            <div class="brand-subtitle">ChatGPT-level study OS</div>
           </div>
         </div>
 
@@ -44,8 +45,8 @@
 
       <div class="sidebar-footer">
         <div class="upgrade-card">
-          <div class="upgrade-title">Pro-ready foundation</div>
-          <div class="upgrade-desc">Streaming, history, memory, uploads, modes.</div>
+          <div class="upgrade-title">Premium-ready foundation</div>
+          <div class="upgrade-desc">Streaming, memory, uploads, export, flashcards, quiz.</div>
         </div>
       </div>
     </aside>
@@ -56,7 +57,7 @@
 
         <div class="topbar-title">
           <div class="eyebrow">Notebot AI</div>
-          <h1>ChatGPT-level study workspace</h1>
+          <h1>ChatGPT-style study workspace</h1>
         </div>
 
         <div class="topbar-actions">
@@ -68,16 +69,16 @@
       <section class="hero">
         <div class="hero-copy">
           <div class="hero-pill">Streaming AI • Memory • Attachments • Notes • Flashcards • Quiz</div>
-          <h2>Turn screenshots, class photos, and rough notes into polished study material.</h2>
+          <h2>Turn screenshots, lecture photos, and rough notes into polished study material.</h2>
           <p>
-            Upload an image, let OCR read it in the browser, and send everything into a streaming chat
+            Upload an image, let OCR read it in the browser, then send everything into a streaming chat
             with persistent memory and conversation history.
           </p>
         </div>
       </section>
 
       <section class="chat-panel">
-        <div class="chat" id="chat"></div>
+        <div class="chat" id="chatContainer"></div>
 
         <div class="status-line" id="statusLine">Ready.</div>
 
@@ -99,7 +100,7 @@
           </label>
 
           <div class="composer-inner">
-            <textarea id="textInput" rows="1" placeholder="Message Notebot…"></textarea>
+            <textarea id="messageInput" rows="1" placeholder="Message Notebot…"></textarea>
             <div class="composer-hint">Shift + Enter for a new line</div>
           </div>
 
