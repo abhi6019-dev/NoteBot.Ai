@@ -13,12 +13,12 @@ let selectedFiles = [];
 let conversations = [];
 let isStreaming = false;
 
-const chatEl = document.getElementById("chat");
+const chatEl = document.getElementById("chatContainer");
 const chatListEl = document.getElementById("chatList");
 const memorySummaryEl = document.getElementById("memorySummary");
 const statusLineEl = document.getElementById("statusLine");
 const attachmentStripEl = document.getElementById("attachmentStrip");
-const textInputEl = document.getElementById("textInput");
+const messageInputEl = document.getElementById("messageInput");
 const fileInputEl = document.getElementById("fileInput");
 const sendBtnEl = document.getElementById("sendBtn");
 const dropZoneEl = document.getElementById("dropZone");
@@ -26,68 +26,26 @@ const sidebarEl = document.getElementById("sidebar");
 const mobileBackdropEl = document.getElementById("mobileBackdrop");
 
 const modeButtons = [...document.querySelectorAll(".mode-pill")];
-modeButtons.forEach(btn => {
-  btn.addEventListener("click", () => setMode(btn.dataset.mode));
-});
 
-document.getElementById("newChatBtn").addEventListener("click", newChat);
-document.getElementById("refreshChatsBtn").addEventListener("click", refreshSidebar);
-document.getElementById("exportBtn").addEventListener("click", exportPdf);
-document.getElementById("copyLastBtn").addEventListener("click", copyLastAssistant);
-document.getElementById("clearFilesBtn").addEventListener("click", () => {
-  selectedFiles = [];
-  renderAttachmentStrip();
-});
-document.getElementById("menuBtn").addEventListener("click", openSidebar);
-mobileBackdropEl.addEventListener("click", closeSidebar);
+document.addEventListener("DOMContentLoaded", init);
 
-sendBtnEl.addEventListener("click", sendMessage);
+function api(path) {
+  return `${BACKEND}${path}`;
+}
 
-textInputEl.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
-  }
-});
+function getEl(id) {
+  return document.getElementById(id);
+}
 
-fileInputEl.addEventListener("change", async (e) => {
-  const files = [...e.target.files];
-  appendFiles(files);
-  fileInputEl.value = "";
-});
-
-dropZoneEl.addEventListener("dragover", (e) => {
-  e.preventDefault();
-  dropZoneEl.classList.add("active");
-});
-
-dropZoneEl.addEventListener("dragleave", () => {
-  dropZoneEl.classList.remove("active");
-});
-
-dropZoneEl.addEventListener("drop", (e) => {
-  e.preventDefault();
-  dropZoneEl.classList.remove("active");
-  const files = [...e.dataTransfer.files];
-  appendFiles(files);
-});
-
-async function bootstrap() {
-  setMode(currentMode);
-
-  if (!conversationId) {
-    await createConversation();
-  }
-
-  await Promise.all([refreshSidebar(), loadMemory(), loadMessages(conversationId)]);
-  renderWelcomeIfEmpty();
+function setStatus(text) {
+  statusLineEl.textContent = text;
 }
 
 function setMode(mode) {
   currentMode = mode;
   localStorage.setItem(modeKey, mode);
   modeButtons.forEach(btn => btn.classList.toggle("active", btn.dataset.mode === mode));
-  statusLineEl.textContent = `Mode: ${mode}`;
+  setStatus(`Mode: ${mode}`);
 }
 
 function openSidebar() {
@@ -100,11 +58,13 @@ function closeSidebar() {
   mobileBackdropEl.classList.remove("show");
 }
 
-function renderWelcomeIfEmpty() {
-  if (chatEl.children.length > 0) return;
+function scrollToBottom() {
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
 
-  const welcome = addMessage("assistant", `Welcome to Notebot. Upload a screenshot or type a message, and I’ll turn it into clean notes, flashcards, quiz items, or an explanation.`);
-  welcome.classList.add("streaming");
+function markdown(text) {
+  const html = marked.parse(text || "");
+  return DOMPurify.sanitize(html);
 }
 
 function addMessage(role, text = "", attachments = []) {
@@ -113,7 +73,7 @@ function addMessage(role, text = "", attachments = []) {
 
   const bubble = document.createElement("div");
   bubble.className = "bubble";
-  bubble.textContent = text;
+  bubble.innerText = text;
 
   if (attachments.length) {
     const strip = document.createElement("div");
@@ -135,12 +95,10 @@ function addMessage(role, text = "", attachments = []) {
         card.appendChild(chip);
       }
 
-      if (att.name) {
-        const meta = document.createElement("div");
-        meta.className = "file-chip";
-        meta.textContent = att.name;
-        card.appendChild(meta);
-      }
+      const meta = document.createElement("div");
+      meta.className = "file-chip";
+      meta.textContent = att.name || "file";
+      card.appendChild(meta);
 
       strip.appendChild(card);
     });
@@ -150,14 +108,29 @@ function addMessage(role, text = "", attachments = []) {
 
   row.appendChild(bubble);
   chatEl.appendChild(row);
-  chatEl.scrollTop = chatEl.scrollHeight;
+  scrollToBottom();
 
   return { row, bubble };
 }
 
-function renderMarkdown(text) {
-  const safe = DOMPurify.sanitize(marked.parse(text || ""));
-  return safe;
+function renderWelcomeIfEmpty() {
+  if (!chatEl) return;
+  if (chatEl.children.length > 0) return;
+
+  chatEl.innerHTML = "";
+
+  const welcome = document.createElement("div");
+  welcome.className = "message assistant";
+
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.innerHTML = `
+    <h2>Welcome to Notebot</h2>
+    <p>Upload images, drop files, or type a question. Notebot will keep memory, stream responses, and save your chats.</p>
+  `;
+
+  welcome.appendChild(bubble);
+  chatEl.appendChild(welcome);
 }
 
 function renderAttachmentStrip() {
@@ -175,9 +148,6 @@ function renderAttachmentStrip() {
       renderAttachmentStrip();
     });
 
-    const meta = document.createElement("div");
-    meta.className = "meta";
-
     if (file.type.startsWith("image/")) {
       const img = document.createElement("img");
       img.src = URL.createObjectURL(file);
@@ -190,6 +160,9 @@ function renderAttachmentStrip() {
       card.appendChild(chip);
     }
 
+    const meta = document.createElement("div");
+    meta.className = "meta";
+
     const name = document.createElement("div");
     name.className = "name";
     name.textContent = file.name;
@@ -200,6 +173,7 @@ function renderAttachmentStrip() {
 
     meta.appendChild(name);
     meta.appendChild(sub);
+
     card.appendChild(meta);
     card.appendChild(removeBtn);
     attachmentStripEl.appendChild(card);
@@ -209,28 +183,15 @@ function renderAttachmentStrip() {
 }
 
 function appendFiles(files) {
-  const imagesOnly = files.filter(file => file.type.startsWith("image/"));
-  if (!imagesOnly.length) {
-    setStatus("Only images are enabled right now.");
+  const imageFiles = files.filter(file => file.type.startsWith("image/"));
+  if (!imageFiles.length) {
+    setStatus("Only images are enabled for OCR uploads right now.");
     return;
   }
 
-  selectedFiles = [...selectedFiles, ...imagesOnly].slice(0, 6);
+  selectedFiles = [...selectedFiles, ...imageFiles].slice(0, 6);
   renderAttachmentStrip();
   setStatus(`${selectedFiles.length} image(s) attached.`);
-}
-
-function setStatus(text) {
-  statusLineEl.textContent = text;
-}
-
-function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
 }
 
 async function ocrImage(file) {
@@ -238,7 +199,7 @@ async function ocrImage(file) {
     const result = await Tesseract.recognize(file, "eng", {
       logger: m => {
         if (m.status === "recognizing text") {
-          setStatus(`Reading image… ${Math.round((m.progress || 0) * 100)}%`);
+          setStatus(`OCR: ${Math.round((m.progress || 0) * 100)}%`);
         }
       }
     });
@@ -251,18 +212,22 @@ async function ocrImage(file) {
 
 async function ocrFiles(files) {
   let combined = "";
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    if (!file.type.startsWith("image/")) continue;
-    setStatus(`OCR ${i + 1}/${files.length}…`);
+  const imageFiles = files.filter(file => file.type.startsWith("image/"));
+
+  for (let i = 0; i < imageFiles.length; i++) {
+    const file = imageFiles[i];
+    setStatus(`Reading image ${i + 1}/${imageFiles.length}…`);
     const text = await ocrImage(file);
-    if (text) combined += `\n[${file.name}]\n${text}\n`;
+    if (text) {
+      combined += `\n[${file.name}]\n${text}\n`;
+    }
   }
+
   return combined.trim();
 }
 
 async function createConversation() {
-  const res = await fetch(`${BACKEND}/conversations`, {
+  const res = await fetch(api("/conversations"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sessionId, mode: currentMode })
@@ -277,11 +242,12 @@ async function createConversation() {
 }
 
 async function refreshSidebar() {
-  const res = await fetch(`${BACKEND}/conversations?sessionId=${encodeURIComponent(sessionId)}`);
+  const res = await fetch(api(`/conversations?sessionId=${encodeURIComponent(sessionId)}`));
   const data = await res.json();
 
   if (!res.ok) {
     console.error(data);
+    setStatus("Could not load chats.");
     return;
   }
 
@@ -333,11 +299,12 @@ async function refreshSidebar() {
 async function loadMessages(id) {
   chatEl.innerHTML = "";
 
-  const res = await fetch(`${BACKEND}/messages/${id}`);
+  const res = await fetch(api(`/messages/${id}`));
   const data = await res.json();
 
   if (!res.ok) {
     setStatus("Failed to load messages.");
+    renderWelcomeIfEmpty();
     return;
   }
 
@@ -350,15 +317,15 @@ async function loadMessages(id) {
   messages.forEach(msg => {
     const item = addMessage(msg.role === "assistant" ? "assistant" : "user", msg.content || "");
     if (msg.role === "assistant") {
-      item.bubble.innerHTML = renderMarkdown(msg.content || "");
+      item.bubble.innerHTML = markdown(msg.content || "");
     }
   });
 
-  chatEl.scrollTop = chatEl.scrollHeight;
+  scrollToBottom();
 }
 
 async function loadMemory() {
-  const res = await fetch(`${BACKEND}/memory/${encodeURIComponent(sessionId)}`);
+  const res = await fetch(api(`/memory/${encodeURIComponent(sessionId)}`));
   const data = await res.json();
 
   if (!res.ok) {
@@ -366,22 +333,26 @@ async function loadMemory() {
     return;
   }
 
-  memorySummaryEl.textContent = data.memorySummary || "No memory yet. Talk to Notebot and it will learn your style.";
+  memorySummaryEl.textContent =
+    data.memorySummary || "No memory yet. Talk to Notebot and it will learn your style.";
 }
 
 async function deleteConversation(id) {
   const ok = confirm("Delete this conversation?");
   if (!ok) return;
 
-  const res = await fetch(`${BACKEND}/conversations/${encodeURIComponent(id)}`, {
+  const res = await fetch(api(`/conversations/${encodeURIComponent(id)}`), {
     method: "DELETE"
   });
 
-  if (!res.ok) return;
+  if (!res.ok) {
+    setStatus("Delete failed.");
+    return;
+  }
 
   if (id === conversationId) {
-    await createConversation();
     chatEl.innerHTML = "";
+    await createConversation();
     renderWelcomeIfEmpty();
   }
 
@@ -393,8 +364,7 @@ async function copyLastAssistant() {
   const last = assistantMessages.at(-1);
   if (!last) return;
 
-  const text = last.innerText;
-  await navigator.clipboard.writeText(text);
+  await navigator.clipboard.writeText(last.innerText);
   setStatus("Copied the last assistant reply.");
 }
 
@@ -403,7 +373,7 @@ async function exportPdf() {
 
   const title = conversations.find(c => c.id === conversationId)?.title || "Notebot Notes";
 
-  const res = await fetch(`${BACKEND}/export/pdf`, {
+  const res = await fetch(api("/export/pdf"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ conversationId, title })
@@ -428,7 +398,7 @@ async function exportPdf() {
 async function sendMessage() {
   if (isStreaming) return;
 
-  const text = textInputEl.value.trim();
+  const text = messageInputEl.value.trim();
   if (!text && selectedFiles.length === 0) return;
 
   if (!conversationId) {
@@ -439,22 +409,21 @@ async function sendMessage() {
   sendBtnEl.disabled = true;
   sendBtnEl.textContent = "…";
 
-  const previewFiles = await Promise.all(
-    selectedFiles.map(async file => ({
-      name: file.name,
-      type: file.type,
-      size: file.size,
-      preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : ""
-    }))
-  );
+  const previewFiles = selectedFiles.map(file => ({
+    name: file.name,
+    type: file.type,
+    size: file.size,
+    preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : ""
+  }));
 
   addMessage("user", text || "📎 Attachment(s) only", previewFiles);
 
-  const placeholder = addMessage("assistant", "");
-  placeholder.row.classList.add("streaming");
-  setStatus("Reading attachments…");
+  const assistant = addMessage("assistant", "");
+  assistant.row.classList.add("streaming");
 
+  setStatus("Reading attachments…");
   const ocrText = await ocrFiles(selectedFiles);
+
   const attachmentPayload = await Promise.all(
     selectedFiles.map(async file => ({
       name: file.name,
@@ -466,7 +435,7 @@ async function sendMessage() {
 
   setStatus("Streaming answer…");
 
-  const res = await fetch(`${BACKEND}/chat/stream`, {
+  const res = await fetch(api("/chat/stream"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -481,8 +450,8 @@ async function sendMessage() {
 
   if (!res.ok || !res.body) {
     const errText = await res.text().catch(() => "");
-    placeholder.bubble.textContent = errText || "Something went wrong.";
-    placeholder.row.classList.remove("streaming");
+    assistant.bubble.textContent = errText || "Something went wrong.";
+    assistant.row.classList.remove("streaming");
     sendBtnEl.disabled = false;
     sendBtnEl.textContent = "Send";
     isStreaming = false;
@@ -499,16 +468,16 @@ async function sendMessage() {
     if (done) break;
 
     full += decoder.decode(value, { stream: true });
-    placeholder.bubble.textContent = full;
-    chatEl.scrollTop = chatEl.scrollHeight;
+    assistant.bubble.textContent = full;
+    scrollToBottom();
   }
 
-  placeholder.bubble.innerHTML = renderMarkdown(full || "No response.");
-  placeholder.row.classList.remove("streaming");
+  assistant.bubble.innerHTML = markdown(full || "No response.");
+  assistant.row.classList.remove("streaming");
 
   selectedFiles = [];
   renderAttachmentStrip();
-  textInputEl.value = "";
+  messageInputEl.value = "";
   setStatus("Done.");
 
   await Promise.all([refreshSidebar(), loadMemory()]);
@@ -517,8 +486,17 @@ async function sendMessage() {
   isStreaming = false;
 }
 
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 async function newChat() {
-  const res = await fetch(`${BACKEND}/conversations`, {
+  const res = await fetch(api("/conversations"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sessionId, mode: currentMode })
@@ -541,7 +519,62 @@ async function newChat() {
   setStatus("New chat ready.");
 }
 
+function setupEvents() {
+  modeButtons.forEach(btn => {
+    btn.addEventListener("click", () => setMode(btn.dataset.mode));
+  });
+
+  document.getElementById("newChatBtn").addEventListener("click", async () => {
+    await newChat();
+    closeSidebar();
+  });
+
+  document.getElementById("refreshChatsBtn").addEventListener("click", refreshSidebar);
+  document.getElementById("exportBtn").addEventListener("click", exportPdf);
+  document.getElementById("copyLastBtn").addEventListener("click", copyLastAssistant);
+  document.getElementById("clearFilesBtn").addEventListener("click", () => {
+    selectedFiles = [];
+    renderAttachmentStrip();
+  });
+  document.getElementById("menuBtn").addEventListener("click", openSidebar);
+  mobileBackdropEl.addEventListener("click", closeSidebar);
+
+  sendBtnEl.addEventListener("click", sendMessage);
+
+  messageInputEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  fileInputEl.addEventListener("change", (e) => {
+    const files = [...e.target.files];
+    appendFiles(files);
+    fileInputEl.value = "";
+  });
+
+  dropZoneEl.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropZoneEl.classList.add("active");
+  });
+
+  dropZoneEl.addEventListener("dragleave", () => {
+    dropZoneEl.classList.remove("active");
+  });
+
+  dropZoneEl.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZoneEl.classList.remove("active");
+    const files = [...e.dataTransfer.files];
+    appendFiles(files);
+  });
+}
+
 async function init() {
+  setupEvents();
+  setMode(currentMode);
+
   if (!conversationId) {
     await newChat();
   } else {
