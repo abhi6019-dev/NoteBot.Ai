@@ -117,7 +117,12 @@ button {
   transition: transform 0.18s ease, background 0.18s ease, opacity 0.18s ease;
 }
 
-.sidebar-action:hover, .ghost:hover, .icon-btn:hover, .send-btn:hover, .mode-pill:hover, .attach-btn:hover {
+.sidebar-action:hover,
+.ghost:hover,
+.icon-btn:hover,
+.send-btn:hover,
+.mode-pill:hover,
+.attach-btn:hover {
   transform: translateY(-1px);
 }
 
@@ -131,7 +136,12 @@ button {
   border: 1px solid var(--line);
 }
 
-.memory-card, .upgrade-card, .chat-list, .hero, .chat-panel, .topbar {
+.memory-card,
+.upgrade-card,
+.chat-list,
+.hero,
+.chat-panel,
+.topbar {
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.045);
   backdrop-filter: blur(18px);
@@ -524,7 +534,7 @@ button {
   gap: 8px;
 }
 
-#textInput {
+#messageInput {
   width: 100%;
   resize: none;
   background: rgba(255,255,255,0.06);
@@ -537,7 +547,7 @@ button {
   outline: none;
 }
 
-#textInput::placeholder {
+#messageInput::placeholder {
   color: var(--muted-2);
 }
 
