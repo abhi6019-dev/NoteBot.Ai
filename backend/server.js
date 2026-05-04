@@ -13,12 +13,9 @@ const {
   SUPABASE_SERVICE_ROLE_KEY
 } = process.env;
 
-if (!GROQ_API_KEY) {
-  console.warn("GROQ_API_KEY is missing.");
-}
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.warn("Supabase env vars are missing.");
-}
+if (!GROQ_API_KEY) console.warn("Missing GROQ_API_KEY");
+if (!SUPABASE_URL) console.warn("Missing SUPABASE_URL");
+if (!SUPABASE_SERVICE_ROLE_KEY) console.warn("Missing SUPABASE_SERVICE_ROLE_KEY");
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: {
@@ -28,17 +25,21 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   }
 });
 
-app.use(
-  cors({
-    origin: true,
-    methods: ["GET", "POST", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    exposedHeaders: ["Content-Type"],
-    maxAge: 86400
-  })
-);
+app.disable("x-powered-by");
 
-app.options("*", cors());
+app.use(cors({
+  origin: true,
+  methods: ["GET", "POST", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  maxAge: 86400
+}));
+
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+  next();
+});
 
 app.use(express.json({ limit: "20mb" }));
 
@@ -89,7 +90,7 @@ Include answers at the end with brief explanations.`;
     case "planner":
       return `Turn the content into a study plan, revision roadmap, and priorities.`;
     default:
-      return `You are Notebot, a premium study assistant.
+      return `You are Notebot, a premium student assistant.
 Be clear, structured, and helpful.
 Use markdown when useful.`;
   }
@@ -146,7 +147,6 @@ async function getMemorySummary(sessionId) {
     .limit(1);
 
   if (error) throw error;
-
   return data?.[0]?.memory_summary || "";
 }
 
@@ -253,7 +253,6 @@ Assistant: ${latestAssistant}
 
 async function streamGroq(messages, res) {
   const response = await groqChat(messages, { stream: true, temperature: 0.35 });
-
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
 
@@ -274,20 +273,17 @@ async function streamGroq(messages, res) {
       if (!line.startsWith("data:")) continue;
 
       const data = line.slice(5).trim();
-      if (!data) continue;
-      if (data === "[DONE]") continue;
+      if (!data || data === "[DONE]") continue;
 
-      let parsed;
       try {
-        parsed = JSON.parse(data);
+        const parsed = JSON.parse(data);
+        const token = parsed?.choices?.[0]?.delta?.content || "";
+        if (token) {
+          fullText += token;
+          res.write(token);
+        }
       } catch {
-        continue;
-      }
-
-      const token = parsed?.choices?.[0]?.delta?.content || "";
-      if (token) {
-        fullText += token;
-        res.write(token);
+        // ignore malformed SSE chunks
       }
     }
   }
@@ -436,6 +432,121 @@ app.delete("/conversations/:conversationId", async (req, res) => {
   }
 });
 
+app.post("/chat", async (req, res) => {
+  try {
+    const sessionId = safeText(req.body?.sessionId, 200);
+    const conversationId = safeText(req.body?.conversationId, 80);
+    const text = safeText(req.body?.text, 12000);
+    const ocrText = safeText(req.body?.ocrText, 20000);
+    const attachments = Array.isArray(req.body?.attachments) ? req.body.attachments : [];
+    const mode = sanitizeMode(req.body?.mode || "chat");
+
+    if (!sessionId || !conversationId) {
+      return res.status(400).json({ error: "Missing sessionId or conversationId" });
+    }
+
+    if (!text && !ocrText && attachments.length === 0) {
+      return res.status(400).json({ error: "Empty message" });
+    }
+
+    await ensureProfile(sessionId);
+
+    const convo = await getConversation(conversationId);
+    if (!convo) {
+      return res.status(404).json({ error: "Conversation not found" });
+    }
+
+    const priorMessages = await getMessages(conversationId, 16);
+    const memorySummary = await getMemorySummary(sessionId);
+
+    const attachmentNames = attachments
+      .map(a => `- ${safeText(a?.name, 120)} (${safeText(a?.type, 80)})`)
+      .join("\n");
+
+    const userContext = [
+      text ? `User message:\n${text}` : "",
+      ocrText ? `OCR text from images:\n${ocrText}` : "",
+      attachmentNames ? `Attachments:\n${attachmentNames}` : ""
+    ].filter(Boolean).join("\n\n").trim();
+
+    const systemPrompt = `
+${modePrompt(mode)}
+
+You are Notebot, a premium student assistant inside a ChatGPT-style product.
+
+Rules:
+- Be accurate and structured.
+- Use markdown when useful.
+- If the user asks for notes, use headings and bullets.
+- If the user asks for flashcards, format as Q:/A:.
+- If the user asks for a quiz, give answers at the end.
+- If OCR text exists, use it.
+- Keep it readable on mobile screens.
+`.trim();
+
+    const messages = [
+      { role: "system", content: systemPrompt },
+      {
+        role: "system",
+        content: `Long-term memory summary:\n${memorySummary || "(none yet)"}`.trim()
+      },
+      ...priorMessages.map(m => ({
+        role: m.role,
+        content: m.content
+      })),
+      {
+        role: "user",
+        content: userContext
+      }
+    ];
+
+    const reply = await groqText(messages, { temperature: 0.35 });
+
+    await insertMessage({
+      conversation_id: conversationId,
+      role: "user",
+      content: userContext,
+      attachments_json: attachments.map(a => ({
+        name: a?.name || "file",
+        type: a?.type || "unknown",
+        size: a?.size || 0
+      })),
+      ocr_text: ocrText,
+      mode
+    });
+
+    await insertMessage({
+      conversation_id: conversationId,
+      role: "assistant",
+      content: reply,
+      attachments_json: [],
+      ocr_text: "",
+      mode
+    });
+
+    await updateConversation(conversationId, {
+      title: convo.title === "New chat" ? makeTitle(text || ocrText) : convo.title,
+      mode
+    });
+
+    const updatedMemory = await summarizeMemory(
+      memorySummary,
+      text || ocrText || "(attachment only)",
+      reply
+    );
+
+    await setMemorySummary(sessionId, updatedMemory);
+
+    res.json({ reply });
+  } catch (err) {
+    console.error("CHAT ERROR:", err);
+    res.status(500).json({
+      error: "CHAT_FAILED",
+      message: err.message
+    });
+  }
+});
+
 app.post("/chat/stream", async (req, res) => {
   const sessionId = safeText(req.body?.sessionId, 200);
   const conversationId = safeText(req.body?.conversationId, 80);
@@ -471,12 +582,7 @@ app.post("/chat/stream", async (req, res) => {
       text ? `User message:\n${text}` : "",
       ocrText ? `OCR text from images:\n${ocrText}` : "",
       attachmentNames ? `Attachments:\n${attachmentNames}` : ""
-    ]
-      .filter(Boolean)
-      .join("\n\n")
-      .trim();
-
-    const titleCandidate = convo.title === "New chat" ? makeTitle(text || ocrText) : convo.title;
+    ].filter(Boolean).join("\n\n").trim();
 
     const systemPrompt = `
 ${modePrompt(mode)}
@@ -513,19 +619,17 @@ Rules:
       conversation_id: conversationId,
       role: "user",
       content: userContext,
-      attachments_json: JSON.stringify(
-        attachments.map(a => ({
-          name: a?.name || "file",
-          type: a?.type || "unknown",
-          size: a?.size || 0
-        }))
-      ),
+      attachments_json: attachments.map(a => ({
+        name: a?.name || "file",
+        type: a?.type || "unknown",
+        size: a?.size || 0
+      })),
       ocr_text: ocrText,
       mode
     });
 
     await updateConversation(conversationId, {
-      title: titleCandidate,
+      title: convo.title === "New chat" ? makeTitle(text || ocrText) : convo.title,
       mode
     });
 
@@ -544,27 +648,31 @@ Rules:
 
     res.end();
 
-    await insertMessage({
-      conversation_id: conversationId,
-      role: "assistant",
-      content: assistantText || "",
-      attachments_json: "[]",
-      ocr_text: "",
-      mode
-    });
+    try {
+      await insertMessage({
+        conversation_id: conversationId,
+        role: "assistant",
+        content: assistantText || "",
+        attachments_json: [],
+        ocr_text: "",
+        mode
+      });
 
-    const updatedMemory = await summarizeMemory(
-      memorySummary,
-      text || ocrText || "(attachment only)",
-      assistantText
-    );
+      const updatedMemory = await summarizeMemory(
+        memorySummary,
+        text || ocrText || "(attachment only)",
+        assistantText
+      );
 
-    await setMemorySummary(sessionId, updatedMemory);
+      await setMemorySummary(sessionId, updatedMemory);
 
-    await updateConversation(conversationId, {
-      title: titleCandidate,
-      mode
-    });
+      await updateConversation(conversationId, {
+        title: convo.title === "New chat" ? makeTitle(text || ocrText) : convo.title,
+        mode
+      });
+    } catch (postErr) {
+      console.error("POST-PROCESS ERROR:", postErr);
+    }
   } catch (err) {
     console.error("CHAT STREAM ERROR:", err);
     if (!res.headersSent) {
